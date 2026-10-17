@@ -137,6 +137,8 @@ def split_kw(s):
 # Notatka opisowa czerpie treść WYŁĄCZNIE z pola „Dodatkowe okoliczności”.
 # Zdanie wprowadzające składamy z metadanych sprawy (charakter czynności, przedmiot,
 # strony Kto/Z kim) — to nie treść z pola Uwagi, lecz nagłówkowy kontekst sprawy.
+# Stosujemy poprawną polską deklinację: rodzaj gramatyczny stron (wnoszący/wnosząca,
+# pozwany/pozwana) wykrywamy z końcówki nazwy, a liczbę stron odmieniamy.
 def zdanie(s):
     s = (s or "").strip()
     if not s:
@@ -145,23 +147,68 @@ def zdanie(s):
         s += "."
     return s[0].upper() + s[1:]
 
+# żeńskie imiona najczęstsze w źródle (gdy nazwisko nie rozstrzyga)
+_IMIONA_F = {"anna", "agnes", "agnieszka", "maria", "marianna", "regina", "zofia",
+             "catharina", "katarzyna", "teresa", "teresua", "zuzanna", "susanna",
+             "dorota", "ewa", "eva", "jadwiga", "hedwigis", "barbara", "elżbieta",
+             "elisabeth", "magdalena", "helena", "krystyna", "christina", "konegunda",
+             "conegunda", "kunegunda", "małgorzata", "margaretha"}
+_IMIONA_M = {"jan", "joannes", "stanisław", "stanislaus", "wojciech", "adalbertus",
+             "woyciech", "jakub", "jacobus", "jacobi", "franciszek", "franciscus",
+             "józef", "jozephus", "kazimierz", "casimirus", "marcin", "martinus",
+             "andrzej", "andreas", "tomasz", "thomas", "michał", "michael",
+             "paweł", "paulus", "piotr", "petrus", "maciej", "mathias"}
+
+def rodzaj_osoby(nazwa):
+    """Zwraca 'f' (żeński) lub 'm' (męski) na podstawie nazwy osoby."""
+    n = (nazwa or "").strip()
+    if not n:
+        return "m"
+    tokens = n.lower().split()
+    # 1) jawne imię żeńskie / męskie
+    for t in tokens:
+        if t in _IMIONA_F:
+            return "f"
+        if t in _IMIONA_M:
+            return "m"
+    last = tokens[-1]
+    # 2) żeńskie sufiksy nazwisk/przezwisk mężatek i panien
+    if re.search(r"(owa|yna|ina|anka|ówna|owna|cczanka|szczanka|czanka)$", last):
+        return "f"
+    if re.search(r"(ska|cka|dzka|żanka|zanka)$", last):
+        return "f"
+    # 3) ogólna końcówka -a zwykle żeńska (np. Zerkowska, Dziedzicowicowa)
+    if last.endswith("a") and not last.endswith("ski") and len(last) > 3:
+        return "f"
+    return "m"
+
+def rola_strona(nazwa, typ):
+    """typ: 'wnosi' (powód) lub 'przeciw' (pozwany). Rzeczownik odmieniony rodzajowo."""
+    f = rodzaj_osoby(nazwa) == "f"
+    if typ == "wnosi":
+        return "powódka" if f else "powód"
+    return "pozwana" if f else "pozwany"
+
 def redaguj_notatke(src):
     temat = src.get("temat", "").strip()
     char = src.get("charakter", "").strip()
     kto = src.get("kto", "").strip()
     zkim = src.get("zkim", "").strip()
     okol = src.get("okol", "").strip()
-    ludzie = src.get("ludzie", [])
     akapity = []
 
-    # 1) Zdanie wprowadzające: rodzaj czynności + przedmiot sprawy + strony
+    # 1) Zdanie wprowadzające: rodzaj czynności sądowej (w naturalnej, odmienionej formie)
     char_fraza = {
         "Dekret": "Wyrok (dekret) sądu",
         "Protestacja": "Protestacja (formalny sprzeciw) wniesiona do sądu",
+        "Protestacja, obdukcja": "Protestacja wraz z obdukcją (oględzinami obrażeń)",
+        "Protestacja z obdukcją": "Protestacja wraz z obdukcją (oględzinami obrażeń)",
+        "Reprotestacja": "Reprotestacja (ponowny sprzeciw)",
+        "Manifestacja": "Manifestacja (uroczyste oświadczenie) wniesiona do sądu",
         "Zeznania": "Zeznania złożone przed sądem",
         "Oskarżenie": "Oskarżenie wniesione do sądu",
         "Apelacja": "Apelacja od wcześniejszego rozstrzygnięcia",
-        "Contumax": "Sprawa z powodu niestawiennictwa strony (contumacia)",
+        "Contumax": "Sprawa prowadzona z powodu niestawiennictwa strony (contumacia)",
         "Dylacja": "Odroczenie (dylacja) sprawy",
         "Qvietatio": "Pokwitowanie (quietatio) — zrzeczenie się roszczeń",
         "Kwitacja": "Pokwitowanie (kwitacja)",
@@ -169,22 +216,36 @@ def redaguj_notatke(src):
         "Roboracja": "Uprawomocnienie (roboracja) czynności",
         "Zarządzenie": "Zarządzenie urzędu",
         "Inquisitio": "Dochodzenie (inquisitio) sądowe",
+        "Inkwizycja": "Dochodzenie (inkwizycja) sądowe",
+        "Obdukcja": "Obdukcja (oględziny obrażeń)",
         "Ogłoszenie": "Ogłoszenie urzędowe",
+        "Elekcja": "Elekcja (wybór) urzędników",
+        "Nominacja": "Nominacja urzędowa",
     }.get(char, (char or "Czynność sądowa"))
-    wstep = char_fraza
-    if temat:
-        wstep += f" w sprawie: {temat.lower()}"
-    if kto and zkim:
-        wstep += f". Stronami są {kto} (wnoszący) oraz {zkim} (strona przeciwna)"
-    elif kto:
-        wstep += f". Sprawę wnosi {kto}"
-    akapity.append(zdanie(wstep))
+    akapity.append(zdanie(char_fraza))
 
-    # 2) Opis zdarzenia z „Dodatkowych okoliczności” — JEDYNE źródło treści opisowej notatki
+    # 2) Przedmiot sprawy — temat jako etykieta w mianowniku (poprawnie, bez wymuszania odmiany)
+    if temat and temat != "-":
+        akapity.append(f"Przedmiot sprawy: {temat}.")
+
+    # 3) Strony sporu — z poprawną deklinacją rodzaju i liczby
+    if kto and zkim:
+        akapity.append(
+            f"Stronami są {kto} ({rola_strona(kto,'wnosi')}) "
+            f"oraz {zkim} ({rola_strona(zkim,'przeciw')})."
+        )
+    elif kto:
+        rs = rola_strona(kto, 'wnosi')
+        akapity.append(f"Jako {rs} występuje {kto}.")
+    elif zkim:
+        rs = rola_strona(zkim, 'przeciw')
+        akapity.append(f"Jako {rs} występuje {zkim}.")
+
+    # 4) Opis zdarzenia z „Dodatkowych okoliczności” — JEDYNE źródło treści opisowej notatki
     if okol:
         akapity.append("Okoliczności sprawy: " + zdanie(okol))
 
-    return "\n\n".join(a for a in akapity if a)
+    return " ".join(a for a in akapity if a).strip()
 
 kw_counter = defaultdict(int)
 matched = 0

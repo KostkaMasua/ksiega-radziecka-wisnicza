@@ -92,6 +92,10 @@ summary{cursor:pointer;font-family:var(--f-head);font-weight:600;font-size:13px;
 blockquote{margin:10px 0 0;font-family:var(--f-src);font-size:16px;line-height:1.55;max-width:66ch}
 blockquote p{margin:0 0 8px}
 blockquote p:last-child{margin-bottom:0}
+.nota{margin-top:10px;display:flex;flex-direction:column;gap:10px}
+.notarow{border-left:3px solid var(--stamp);padding-left:12px}
+.notalbl{display:block;font-family:var(--f-head);font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--stamp);margin-bottom:3px}
+.notarow p,.notadesc{margin:0;font-family:var(--f-src);font-size:16px;line-height:1.55;max-width:66ch;color:var(--ink)}
 .morebtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--surface);background:var(--stamp);border:0;border-radius:4px;padding:14px;cursor:pointer;width:100%}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:4px;padding:22px 14px;color:var(--muted)}
 .pages{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -223,8 +227,8 @@ function prep(){
     w._rok=(w.data||"").slice(0,4);
     w._nn=norm((w.osoby||[]).map(o=>o.nazwisko).join(" "));
     w._ni=norm((w.osoby||[]).map(o=>o.imie).join(" "));
-    w._nm=norm((w.osoby||[]).map(o=>[o.miejscowosc].join(" ")).join(" ")+" "+(w.streszczenie||""));
-    w._nt=norm(w.streszczenie||"");
+    w._nm=norm((w.osoby||[]).map(o=>[o.miejscowosc].join(" ")).join(" ")+" "+(w.streszczenie||"")+" "+(w.nota_strony||"")+" "+(w.nota_okol||""));
+    w._nt=norm((w.streszczenie||"")+" "+(w.nota_strony||"")+" "+(w.nota_okol||""));
     w._role=(w.osoby||[]).map(o=>o.rola);
     w._kw=norm((w.kw||[]).join(" ")+" "+(w.temat||""));
   }
@@ -300,8 +304,11 @@ function cardWpis(w0){
       ${pew?`<span class="tag pew-${esc(pew)}">odczyt: ${esc(pew)}</span>`:""}
       <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
     </div>
-    <blockquote>${(w0.notatka?esc(w0.notatka):esc(w0.streszczenie)).replace(/\n\n/g,"</p><p>").replace(/^/,"<p>").replace(/$/,"</p>")}</blockquote>
-    ${w0.okol&&!(w0.notatka||"").includes(w0.okol)?`<div class="okol"><span class="rellbl">📝 Dodatkowe okoliczności</span><p>${esc(w0.okol)}</p></div>`:""}
+    <div class="nota">
+      ${w0.nota_strony?`<div class="notarow"><span class="notalbl">Strony</span><p>${esc(w0.nota_strony)}</p></div>`:""}
+      ${w0.nota_okol?`<div class="notarow"><span class="notalbl">Okoliczności sprawy</span><p>${esc(w0.nota_okol)}</p></div>`:""}
+      ${(!w0.nota_strony&&!w0.nota_okol&&w0.streszczenie)?`<p class="notadesc">${esc(w0.streszczenie)}</p>`:""}
+    </div>
     ${(w0.kw&&w0.kw.length)?`<div class="pages kw">${w0.kw.map(k=>`<button type="button" class="pg kwchip" data-kw="${esc(k)}">${esc(k)}</button>`).join("")}</div>`:""}
     <details><summary>Kto z kim — osoby w sprawie (${osoby.length})</summary>
       <div class="persons">${pHtml||'<span class="none">brak powiązanych osób</span>'}</div>

@@ -91,22 +91,34 @@ next(oit)  # nagłówek
 def cell(r, i):
     return "" if i >= len(r) or r[i] is None else str(r[i]).strip()
 orig_entries = []  # w kolejności źródła
+cur = None
 for r in oit:
     rid = cell(r, 0)
-    if not rid:
-        continue  # wiersz-kontynuacja (dodatkowa osoba)
-    rok, mie, dzien = cell(r, 3), cell(r, 2), cell(r, 1)
-    try:
-        data = f"{int(rok):04d}-{int(mie):02d}-{int(dzien):02d}"
-    except ValueError:
-        data = rok
-    orig_entries.append({
-        "data": data,
-        "skan": cell(r, 5),
-        "temat": cell(r, 12),
-        "slowa": cell(r, 14),
-        "okol": cell(r, 15),
-    })
+    osoba_row = cell(r, 9)   # 'Osoby powiązane'
+    stan_row = cell(r, 8)    # 'Stan społeczny'
+    zaw_row = cell(r, 10)    # 'Zawód'
+    uw_row = cell(r, 11)     # 'Uwagi'
+    if rid:
+        rok, mie, dzien = cell(r, 3), cell(r, 2), cell(r, 1)
+        try:
+            data = f"{int(rok):04d}-{int(mie):02d}-{int(dzien):02d}"
+        except ValueError:
+            data = rok
+        cur = {
+            "data": data,
+            "skan": cell(r, 5),
+            "strona": cell(r, 4),
+            "kto": cell(r, 6),
+            "zkim": cell(r, 7),
+            "temat": cell(r, 12),
+            "charakter": cell(r, 13),
+            "slowa": cell(r, 14),
+            "okol": cell(r, 15),
+            "ludzie": [],   # (osoba, stan, zawod, uwagi)
+        }
+        orig_entries.append(cur)
+    if cur is not None and (osoba_row or zaw_row):
+        cur["ludzie"].append((osoba_row, stan_row, zaw_row, uw_row))
 owb.close()
 
 # indeks oryginału po (data, skan), zachowując kolejność w obrębie grupy
@@ -152,6 +164,77 @@ slowa_klucze = sorted(kw_canon.values(), key=lambda t: (-kw_counter[t.lower()], 
 print("Dopasowano słowa klucze do", matched, "z", len(wpisy), "wpisów")
 print("Różnych haseł:", len(slowa_klucze))
 
+# --- Powiązania i zawody osób (z bloków oryginału) ---
+# Normalizacja nazwy do dopasowania osoby z indeksem (indeks ma "Imię Nazwisko").
+def pnorm(s):
+    s = (s or "").lower()
+    s = s.replace("ł", "l")
+    import unicodedata
+    s = "".join(c for c in unicodedata.normalize("NFD", s)
+                if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9 ]", " ", s).strip()
+    
+# zbierz per osoba: zawody, statusy, uwagi, współwystąpienia
+from collections import defaultdict as _dd2
+p_zawody = _dd2(set)
+p_statusy = _dd2(set)
+p_uwagi = _dd2(list)
+p_rel = _dd2(dict)      # wspolwystepujacy -> {"ile":n, "sprawy":[...]}
+all_zawody = defaultdict(int)
+
+for e in orig_entries:
+    ludzie = e["ludzie"]
+    nazwy = [l[0] for l in ludzie if l[0]]
+    for (osoba, stan, zaw, uw) in ludzie:
+        if not osoba:
+            continue
+        key = pnorm(osoba)
+        if not key:
+            continue
+        if zaw:
+            p_zawody[key].add(zaw); all_zawody[zaw]+=1
+        if stan:
+            p_statusy[key].add(stan)
+        if uw:
+            p_uwagi[key].append(uw)
+        # powiązania: inne osoby z tego samego wpisu
+        for inna in nazwy:
+            if pnorm(inna)==key:
+                continue
+            d = p_rel[key].setdefault(inna, {"ile":0, "sprawy":[]})
+            d["ile"] += 1
+            spr = (e["temat"] or e["charakter"] or "sprawa") + (f" ({e['data']})" if e['data'] else "")
+            if spr not in d["sprawy"]:
+                d["sprawy"].append(spr)
+
+# dołóż dane do indeksu osób (dopasowanie po znormalizowanej nazwie)
+rel_hits = 0
+for o in idx_osob:
+    key = pnorm(o["osoba"])
+    zaw = sorted(p_zawody.get(key, []))
+    stat = sorted(p_statusy.get(key, []))
+    uw = p_uwagi.get(key, [])
+    rel = p_rel.get(key, {})
+    # top powiązań po liczbie wspólnych spraw
+    rel_list = sorted(rel.items(), key=lambda kv: -kv[1]["ile"])
+    o["zawody"] = zaw
+    o["uwagi"] = uw[:12]
+    # statusy w indeksie mogą już być; uzupełnij jeśli puste
+    if not o.get("statusy"):
+        o["statusy"] = ", ".join(stat)
+    o["powiazania"] = [
+        {"osoba": nm, "ile": d["ile"], "sprawy": d["sprawy"][:5]}
+        for nm, d in rel_list[:25]
+    ]
+    if zaw: o["_zaw_norm"] = pnorm(" ".join(zaw))
+    else: o["_zaw_norm"] = ""
+    if o["powiazania"]:
+        rel_hits += 1
+
+zawody_lista = sorted(all_zawody, key=lambda z: (-all_zawody[z], z.lower()))
+print("Osób z powiązaniami:", rel_hits, "z", len(idx_osob))
+print("Różnych zawodów:", len(zawody_lista))
+
 wpisy_list = list(wpisy.values())
 # sort wpisów po dacie, potem po id
 wpisy_list.sort(key=lambda w: (w["data"], w["id"]))
@@ -171,6 +254,8 @@ out = {
         "role": role,
         "slowa_klucze": slowa_klucze,
         "slowa_klucze_top": slowa_klucze[:60],
+        "zawody": zawody_lista,
+        "zawody_top": zawody_lista[:60],
         "liczba_wpisow": len(wpisy_list),
         "liczba_osob_wierszy": len(osoby_all),
         "liczba_osob_indeks": len(idx_osob),

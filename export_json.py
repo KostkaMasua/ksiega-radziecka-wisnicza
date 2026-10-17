@@ -115,9 +115,15 @@ for r in oit:
             "charakter": cell(r, 13),
             "slowa": cell(r, 14),
             "okol": cell(r, 15),
+            "okol_list": [],  # wszystkie 'Dodatkowe okoliczności' z bloku: (osoba_w_wierszu, tekst)
             "ludzie": [],   # (osoba, stan, zawod, uwagi)
         }
+        if cell(r, 15):
+            cur["okol_list"].append((osoba_row, cell(r, 15)))
         orig_entries.append(cur)
+    else:
+        if cur is not None and cell(r, 15):
+            cur["okol_list"].append((osoba_row, cell(r, 15)))
     if cur is not None and (osoba_row or zaw_row):
         cur["ludzie"].append((osoba_row, stan_row, zaw_row, uw_row))
 owb.close()
@@ -206,12 +212,11 @@ def redaguj_notatke(src):
     elif zkim:
         strony = f"{zkim} ({rola_strona(zkim,'przeciw')})."
 
-    # --- OKOLICZNOŚCI: pole „Dodatkowe okoliczności” + uwagi osób wzmiankowanych ---
-    # Imię/nazwisko powódki (do zamiany zaimka „ją/jej” na nazwę, gdy jednoznaczne).
+    # --- OKOLICZNOŚCI: wszystkie „Dodatkowe okoliczności” z bloku (pierwszy i kolejne wiersze) ---
+    # Każdy wpis może mieć kilka okoliczności dopisanych przy różnych osobach — sklejamy je
+    # w jeden opis, przypisując podmiot tam, gdzie zdanie zaczyna się od czasownika/zaimka.
     powod_nazwa = kto or ""
-    zdania = []
     def biernik_f(nazwa):
-        # prosty biernik żeńskich nazwisk: -owa→-ową, -a→-ą (dla „pobił ją” → „pobił …ą”)
         n = nazwa.strip()
         if n.endswith("owa"):
             return n[:-3] + "ową"
@@ -220,35 +225,32 @@ def redaguj_notatke(src):
         if n.endswith("a"):
             return n[:-1] + "ą"
         return n
-    if okol:
-        tekst = okol.strip()
-        if powod_nazwa and rodzaj_osoby(powod_nazwa) == "f":
-            tekst = re.sub(r"\bją\b", biernik_f(powod_nazwa), tekst, count=1)
-            tekst = re.sub(r"\bjej\b", powod_nazwa, tekst, count=1)
-        zdania.append(zdanie(tekst))
-    # dopisz uwagi osób wzmiankowanych (pole Uwagi w linii danej osoby) — ALE tylko
-    # te opisujące zdarzenie, nie czyste etykiety pokrewieństwa/pochodzenia/statusu.
-    POKREW_ONLY = re.compile(r"^(mąż|maz|żona|zona|wdowa|wdowiec|brat|siostra|syn|córka|corka|"
-                             r"ojciec|matka|teść|tesc|teściowa|tesciowa|szwagier|szwagierka|"
-                             r"pasierb|pasierbica|macocha|ojczym|mieszczanin|mieszczka|"
-                             r"obywatel|obywatelka|ze wsi|z miasta)\b.{0,30}$",
-                             re.IGNORECASE)
-    for l in ludzie:
-        osoba = (l[0] or "").strip() if len(l) > 0 else ""
-        uw = (l[3] or "").strip() if len(l) > 3 else ""
-        if not uw or not osoba:
+    VERB_INIT = re.compile(
+        r"^(nie było go|nie było jej|był |była |grał|grała|wstąpił|wstąpiła|"
+        r"stanął|stanęła|bronił|broniła|szukał|szukała|przyszedł|przyszła|"
+        r"został|została|grali|mieszka|mieszkał|poszedł|poszła|uderzył|uderzyła|"
+        r"zeznał|zeznała|oświadczył|oświadczyła|widział|widziała|usłyszał)",
+        re.IGNORECASE)
+    zdania = []
+    okol_list = src.get("okol_list", [])
+    if not okol_list and okol:
+        okol_list = [("", okol)]  # fallback, gdyby lista nie została zebrana
+    seen = set()
+    for (osoba_w, tekst) in okol_list:
+        t = (tekst or "").strip()
+        if not t or t in seen:
             continue
-        if POKREW_ONLY.match(uw):
-            continue  # sama relacja pokrewieństwa — jest już w kafelku osoby
-        # uwaga opisowa: wpleć z podmiotem = nazwa osoby, gdy zdanie go nie ma
-        u = uw.strip()
-        imie_nazwa = osoba.split()[-1] if osoba else osoba
-        # jeśli uwaga zaczyna się od zaimka/bezokolicznika, dodaj podmiot
-        if re.match(r"^(nie było go|nie było jej|był|była|grał|grała|wstąpił|"
-                    r"wstąpiła|stanął|stanęła|bronił|broniła|szukał|przyszedł|"
-                    r"przyszła|został|została|grali|mieszka|mieszkał)", u, re.IGNORECASE):
-            u = f"{osoba}: {u[0].lower()}{u[1:]}"
-        zdania.append(zdanie(u))
+        seen.add(t)
+        # zamień zaimek „ją/jej” na nazwisko powódki (biernik/dopełniacz), gdy jednoznaczne
+        if powod_nazwa and rodzaj_osoby(powod_nazwa) == "f":
+            t = re.sub(r"\bją\b", biernik_f(powod_nazwa), t, count=1)
+            t = re.sub(r"\bjej\b", powod_nazwa, t, count=1)
+        # jeśli okoliczność dopisana przy konkretnej osobie zaczyna się od czasownika,
+        # poprzedź ją tą osobą jako podmiotem (np. mąż: „Nie było go…”)
+        osoba_w = (osoba_w or "").strip()
+        if osoba_w and osoba_w not in (kto, zkim) and VERB_INIT.match(t):
+            t = f"{osoba_w}: {t[0].lower()}{t[1:]}"
+        zdania.append(zdanie(t))
     okol_txt = " ".join(z for z in zdania if z).strip()
 
     return {"strony": strony, "okol": okol_txt}
@@ -435,11 +437,17 @@ if _os.path.exists(BAZA1):
                 "kto": bc(r, B["KTO"]), "zkim": bc(r, B["ZKIM"]),
                 "temat": bc(r, B["TEMAT"]), "charakter": bc(r, B["CHAR"]),
                 "slowa": bc(r, B["SLOWA"]), "okol": bc(r, B["OKOL"]),
+                "okol_list": [],   # wszystkie 'Dodatkowe okoliczności' z bloku: (osoba_w_wierszu, tekst)
                 "ludzie": [],   # (osoba, stan, zaw, uw, rola, skad)
             }
+            if bc(r, B["OKOL"]):
+                cur["okol_list"].append((bc(r, B["OSOBA"]), bc(r, B["OKOL"])))
             b1_entries.append(cur)
         if cur is not None:
             osoba = bc(r, B["OSOBA"])
+            # okoliczności dopisane w KOLEJNYCH wierszach bloku (nie pierwszym)
+            if not bc(r, B["ID"]) and bc(r, B["OKOL"]):
+                cur["okol_list"].append((osoba, bc(r, B["OKOL"])))
             if osoba or bc(r, B["UW"]) or bc(r, B["ZAW"]):
                 cur["ludzie"].append((osoba, bc(r, B["STAN"]), bc(r, B["ZAW"]),
                                       bc(r, B["UW"]), bc(r, B["ROLA"]), bc(r, B["SKAD"])))

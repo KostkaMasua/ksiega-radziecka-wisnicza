@@ -97,6 +97,21 @@ blockquote{margin:10px 0 0;font-family:var(--f-src);font-size:16px;line-height:1
 .pages.kw{margin-top:0}
 button.kwchip{font-family:var(--f-head);border:1px solid var(--line);cursor:pointer}
 button.kwchip:hover{background:var(--stamp);color:var(--surface);border-color:var(--stamp)}
+.rels{margin-top:10px;display:flex;flex-direction:column;gap:12px}
+.relrow{display:flex;flex-direction:column;gap:5px}
+.rellbl{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+button.zawchip{font-family:var(--f-head);font-size:12px;font-weight:600;background:transparent;color:var(--civ);border:1px solid var(--civ);border-radius:3px;padding:3px 8px;cursor:pointer}
+button.zawchip:hover{background:var(--civ);color:var(--surface)}
+.pg.st{background:transparent;border:1px solid var(--line);color:var(--muted)}
+.uwlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13.5px}
+.rellist{display:flex;flex-direction:column;gap:7px}
+.relp{display:flex;flex-direction:column;gap:2px;padding:5px 0;border-bottom:1px dotted var(--line)}
+.relp:last-child{border-bottom:0}
+button.relname{font:inherit;font-family:var(--f-head);font-weight:700;font-size:14px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer;text-align:left}
+button.relname:hover{text-decoration:underline}
+.relc{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.relspr{color:var(--muted);font-size:12.5px}
 footer{border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
 footer p{margin:0;max-width:70ch}
 mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
@@ -141,6 +156,11 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
       <label for="kwsel">Częste hasła<select id="kwsel"></select></label>
     </div>
     <datalist id="kwlist"></datalist>
+    <div class="two" id="rowZAW" hidden>
+      <label for="qz">Zawód / urząd<input type="search" id="qz" list="zawlist" placeholder="np. Consul, Rzeźnik, Cechmistrz"></label>
+      <label for="zawsel">Częste zawody<select id="zawsel"></select></label>
+    </div>
+    <datalist id="zawlist"></datalist>
     <label class="check" for="qt" id="lqt" hidden><input type="checkbox" id="qt">Szukaj też w treści streszczenia</label>
     <div class="row"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
   </form>
@@ -178,6 +198,7 @@ function prep(){
   for(const o of D.osoby_indeks){
     o._n=norm(o.osoba);
     o._st=norm(o.statusy||"");
+    o._z=norm((o.zawody||[]).join(" "));
   }
 }
 
@@ -195,6 +216,10 @@ function setup(){
   const kws=D.meta.slowa_klucze||[];
   $("kwlist").innerHTML=kws.map(k=>`<option value="${esc(k)}">`).join("");
   fillSelect($("kwsel"),(D.meta.slowa_klucze_top||kws.slice(0,60)),"— wybierz częste hasło —");
+  // zawody (widok B)
+  const zaw=D.meta.zawody||[];
+  $("zawlist").innerHTML=zaw.map(z=>`<option value="${esc(z)}">`).join("");
+  fillSelect($("zawsel"),(D.meta.zawody_top||zaw.slice(0,60)),"— wybierz częsty zawód —");
   const l=D.meta.lata;
   $("scope").innerHTML=`<strong>Zasób:</strong> ${D.meta.liczba_wpisow.toLocaleString("pl-PL")} wpisów sądowych i ${D.meta.liczba_osob_indeks.toLocaleString("pl-PL")} osób w indeksie, lata ${l[0]}–${l[l.length-1]}. Wybierz widok: wpisy (sprawy) albo osoby (indeks).`;
   // obsługa z URL
@@ -212,6 +237,7 @@ function setView(v,silent){
   $("rowAB").hidden=!A;          // typ + rok tylko dla wpisów
   $("rowA").hidden=!A;           // rola + pewność tylko dla wpisów
   $("rowKW").hidden=!A;          // słowa klucze tylko dla wpisów
+  $("rowZAW").hidden=A;          // zawód tylko dla osób (widok B)
   $("lqt").hidden=!A;
   $("lqm").style.display="";     // miejscowość: w B szukamy po stronach? -> zmieniamy etykietę
   $("lqm").querySelector("input").placeholder=A?"np. Bochnia":"np. 305 (nr strony)";
@@ -248,12 +274,26 @@ function cardWpis(w0){
 
 function cardOsoba(o){
   const strony=(o.strony||"").split(/[,;]\s*/).filter(Boolean);
+  const zawody=(o.zawody||[]);
+  const uwagi=(o.uwagi||[]);
+  const pow=(o.powiazania||[]);
+  const statusy=(o.statusy||"").split(/[,;]\s*/).filter(Boolean);
+  // sekcja powiązań zawodowych/społecznych (zawody + statusy)
+  const zawHtml=zawody.length?`<div class="relrow"><span class="rellbl">Zawodowe / urzędy</span><div class="chips">${zawody.map(z=>`<button type="button" class="pg zawchip" data-zaw="${esc(z)}">${esc(z)}</button>`).join("")}</div></div>`:"";
+  const stHtml=statusy.length?`<div class="relrow"><span class="rellbl">Status społeczny</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
+  // rodzinne / społeczne — z notatek źródła
+  const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Notatki (rodzina / pochodzenie / okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
+  // powiązania przez wspólne sprawy
+  const relHtml=pow.length?`<div class="relrow"><span class="rellbl">Powiązania przez sprawy (${pow.length})</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>esc(s)).join(" · ")}</div></div>`).join("")}</div></div>`:"";
+  const hasRel=zawHtml||stHtml||uwHtml||relHtml;
   return `<article class="rec">
     <div class="top"><div class="name">${esc(o.osoba)}</div><div class="born">${esc(o.liczba)||"?"} wyst.</div></div>
     <dl>
+      <dt>Zawód / urząd</dt><dd>${zawody.length?zawody.map(esc).join(", "):'<span class="none">brak w źródle</span>'}</dd>
       <dt>Status</dt><dd>${o.statusy?esc(o.statusy):'<span class="none">brak w źródle</span>'}</dd>
       <dt>Strony</dt><dd><div class="pages">${strony.length?strony.map(s=>`<span class="pg">str. ${esc(s)}</span>`).join(""):'<span class="none">—</span>'}</div></dd>
     </dl>
+    ${hasRel?`<details><summary>Powiązania rodzinne, zawodowe i społeczne</summary><div class="rels">${zawHtml}${stHtml}${uwHtml}${relHtml}</div></details>`:""}
   </article>`;
 }
 
@@ -275,10 +315,12 @@ function filterWpisy(){
 }
 function filterOsoby(){
   const qn=norm($("qn").value),qi=norm($("qi").value),qm=($("qm").value||"").trim();
+  const qz=norm($("qz").value||$("zawsel").value);
   return D.osoby_indeks.filter(o=>{
     if(qn&&!o._n.includes(qn))return false;
     if(qi&&!o._n.includes(qi))return false;
     if(qm&&!(o.strony||"").split(/[,;]\s*/).includes(qm))return false;
+    if(qz&&!(o._z||"").includes(qz))return false;
     return true;
   });
 }
@@ -300,16 +342,24 @@ function draw(keep){
 }
 
 function go(){draw();}
-["qn","qi","qm","qk"].forEach(id=>$(id).addEventListener("input",go));
+["qn","qi","qm","qk","qz"].forEach(id=>$(id).addEventListener("input",go));
 ["typ","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
 $("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
-// klik w hasło na karcie -> ustaw filtr słowa klucz
-$("list").addEventListener("click",e=>{const b=e.target.closest(".kwchip");if(b){$("qk").value=b.dataset.kw;$("kwsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});}});
+$("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
+// kliknięcia na kartach: hasło (A), zawód/osoba-powiązana (B)
+$("list").addEventListener("click",e=>{
+  const kb=e.target.closest(".kwchip");
+  if(kb){$("qk").value=kb.dataset.kw;$("kwsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  const zb=e.target.closest(".zawchip");
+  if(zb){$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  const rn=e.target.closest(".relname");
+  if(rn){["qi","qm","qk","qz"].forEach(id=>$(id).value="");$("zawsel").value="";$("qn").value=rn.dataset.osoba;draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+});
 $("more").addEventListener("click",()=>{lim+=STEP;draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());
 $("vA").addEventListener("click",()=>{setView("A");draw();});
 $("vB").addEventListener("click",()=>{setView("B");draw();});
-$("clr").addEventListener("click",()=>{["qn","qi","qm","qk"].forEach(id=>$(id).value="");$("typ").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("kwsel").value="";$("qt").checked=false;draw();});
+$("clr").addEventListener("click",()=>{["qn","qi","qm","qk","qz"].forEach(id=>$(id).value="");$("typ").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("kwsel").value="";$("zawsel").value="";$("qt").checked=false;draw();});
 $("theme").addEventListener("click",()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const next=cur==="dark"?"light":(cur==="light"?"":"dark");

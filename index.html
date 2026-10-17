@@ -103,6 +103,9 @@ button.kwchip:hover{background:var(--stamp);color:var(--surface);border-color:va
 .relrow.occ{border-left:3px solid var(--civ);padding-left:10px}
 .relrow.soc{border-left:3px solid var(--mid);padding-left:10px}
 .relrow.cases{border-left:3px solid var(--stamp);padding-left:10px}
+.relrow.extra{border-left:3px solid var(--chk);padding-left:10px}
+.okol{border-left:3px solid var(--chk);padding-left:10px}
+.okol p{margin:3px 0 0;font-family:var(--f-src);font-size:14.5px;line-height:1.5;color:var(--ink)}
 .rellbl{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 button.zawchip{font-family:var(--f-head);font-size:12px;font-weight:600;background:transparent;color:var(--civ);border:1px solid var(--civ);border-radius:3px;padding:3px 8px;cursor:pointer}
@@ -172,6 +175,15 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
     </div>
     <datalist id="zawlist"></datalist>
     <label class="check" for="qt" id="lqt" hidden><input type="checkbox" id="qt">Szukaj też w treści streszczenia</label>
+    <div class="two">
+      <label for="perpage">Pokaż rekordów<select id="perpage">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+        <option value="all">wszystkie</option>
+      </select></label>
+    </div>
     <div class="row"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
   </form>
 
@@ -188,12 +200,14 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const norm=s=>(s||"").toLowerCase().replace(/ł/g,"l").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-const STEP=10;
+const DEFSTEP=10;
+// liczba rekordów na stronę wybierana przez użytkownika; "wszystkie" -> Infinity
+function pageStep(){const v=$("perpage")?$("perpage").value:String(DEFSTEP);return v==="all"?Infinity:(parseInt(v,10)||DEFSTEP);}
 const RMIES=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 function dataOpis(d){const m=/^(\d{4})-(\d{2}|\?\?|\[\?\])?-?(\d{2}|\?\?|\[\?\])?/.exec(d||"");if(!m)return d||"";
   const y=m[1],mo=m[2],dd=m[3];let s=y;if(mo&&/^\d+$/.test(mo))s=(RMIES[+mo]||mo)+" "+y;if(dd&&/^\d+$/.test(dd))s=(+dd)+" "+(RMIES[+mo]||"")+" "+y;return s.replace(/\s+/g," ").trim();}
 
-let D=null, VIEW="A", lim=STEP;
+let D=null, VIEW="A", lim=DEFSTEP;
 // indeksy pomocnicze do widoku A (wpisy z znormalizowanym tekstem osób)
 function prep(){
   for(const w of D.wpisy){
@@ -240,7 +254,7 @@ function setup(){
 }
 
 function setView(v,silent){
-  VIEW=v;lim=STEP;
+  VIEW=v;lim=pageStep();
   $("vA").setAttribute("aria-pressed",v==="A");
   $("vB").setAttribute("aria-pressed",v==="B");
   const A=v==="A";
@@ -276,6 +290,7 @@ function cardWpis(w0){
       <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
     </div>
     <blockquote>${esc(w0.streszczenie)}</blockquote>
+    ${w0.okol?`<div class="okol"><span class="rellbl">📝 Dodatkowe okoliczności</span><p>${esc(w0.okol)}</p></div>`:""}
     ${(w0.kw&&w0.kw.length)?`<div class="pages kw">${w0.kw.map(k=>`<button type="button" class="pg kwchip" data-kw="${esc(k)}">${esc(k)}</button>`).join("")}</div>`:""}
     <details><summary>Osoby w sprawie (${osoby.length})</summary>
       <div class="persons">${pHtml||'<span class="none">brak powiązanych osób</span>'}</div>
@@ -288,6 +303,7 @@ function cardOsoba(o){
   const zawody=(o.zawody||[]);
   const uwagi=(o.uwagi||[]);
   const rodzina=(o.rodzina||[]);
+  const okol=(o.okolicznosci||[]);
   const pow=(o.powiazania||[]);
   const statusy=(o.statusy||"").split(/[,;]\s*/).filter(Boolean);
   // 1) RODZINNE — z notatek o więzi pokrewieństwa
@@ -298,9 +314,11 @@ function cardOsoba(o){
   const stHtml=statusy.length?`<div class="relrow soc"><span class="rellbl">🏛 Powiązania społeczne (status stanowy)</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
   // 4) INNE notatki (pochodzenie, okoliczności)
   const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Inne notatki źródła (pochodzenie, okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
+  // 4b) DODATKOWE OKOLICZNOŚCI spraw — zbiorcza notka podpięta pod sprawy, w których osoba brała udział
+  const okolHtml=okol.length?`<div class="relrow extra"><span class="rellbl">📝 Dodatkowe okoliczności spraw (${okol.length})</span><ul class="uwlist">${okol.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
   // 5) PRZEZ SPRAWY — współwystępowanie (NIE implikuje pokrewieństwa)
   const relHtml=pow.length?`<div class="relrow cases"><span class="rellbl">⚖ Powiązania przez wspólne sprawy (${pow.length}) — współwystępowanie, nie pokrewieństwo</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>esc(s)).join(" · ")}</div></div>`).join("")}</div></div>`:"";
-  const hasRel=rodzHtml||zawHtml||stHtml||uwHtml||relHtml;
+  const hasRel=rodzHtml||zawHtml||stHtml||uwHtml||okolHtml||relHtml;
   return `<article class="rec">
     <div class="top"><div class="name">${esc(o.osoba)}</div><div class="born">${esc(o.liczba)||"?"} wyst.</div></div>
     <dl>
@@ -308,7 +326,7 @@ function cardOsoba(o){
       <dt>Status</dt><dd>${o.statusy?esc(o.statusy):'<span class="none">brak w źródle</span>'}</dd>
       <dt>Strony</dt><dd><div class="pages">${strony.length?strony.map(s=>`<span class="pg">str. ${esc(s)}</span>`).join(""):'<span class="none">—</span>'}</div></dd>
     </dl>
-    ${hasRel?`<details><summary>Powiązania osoby</summary><div class="rels">${rodzHtml}${zawHtml}${stHtml}${uwHtml}${relHtml}</div></details>`:""}
+    ${hasRel?`<details><summary>Powiązania osoby</summary><div class="rels">${rodzHtml}${zawHtml}${stHtml}${uwHtml}${okolHtml}${relHtml}</div></details>`:""}
   </article>`;
 }
 
@@ -350,15 +368,16 @@ function filterOsoby(){
 function plural(n,a,b,c){return n===1?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?b:c);}
 
 function draw(keep){
-  if(keep!==true)lim=STEP;
+  const step=pageStep();
+  if(keep!==true)lim=step;
   const A=VIEW==="A";
   const out=A?filterWpisy():filterOsoby();
   const n=out.length;
   const word=A?plural(n,"wpis","wpisy","wpisów"):plural(n,"osoba","osoby","osób");
   const vis=Math.min(lim,n),rest=n-vis;
-  $("cnt").textContent=`Znaleziono: ${n} ${word}`+(n>STEP?` · pokazano ${vis}`:"");
+  $("cnt").textContent=`Znaleziono: ${n} ${word}`+(vis<n?` · pokazano ${vis}`:"");
   $("more").hidden=rest<=0;
-  $("more").textContent=`Więcej · kolejne ${Math.min(STEP,rest)} z ${rest}`;
+  $("more").textContent=`Więcej · kolejne ${Math.min(step,rest)} z ${rest}`;
   const render=A?cardWpis:cardOsoba;
   $("list").innerHTML=n?out.slice(0,vis).map(render).join(""):`<div class="empty">Brak wyników dla tych kryteriów. Skróć nazwisko do początku albo wyczyść filtry.</div>`;
 }
@@ -367,6 +386,7 @@ function go(){draw();}
 ["qn","qi","qm","qk","qz"].forEach(id=>$(id).addEventListener("input",go));
 ["typ","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
 $("sortb").addEventListener("change",go);
+$("perpage").addEventListener("change",go);
 $("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
 $("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
 // kliknięcia na kartach: hasło (A), zawód/osoba-powiązana (B)
@@ -378,7 +398,7 @@ $("list").addEventListener("click",e=>{
   const rn=e.target.closest(".relname");
   if(rn){["qi","qm","qk","qz"].forEach(id=>$(id).value="");$("zawsel").value="";$("qn").value=rn.dataset.osoba;draw();window.scrollTo({top:0,behavior:"smooth"});return;}
 });
-$("more").addEventListener("click",()=>{lim+=STEP;draw(true);});
+$("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());
 $("vA").addEventListener("click",()=>{setView("A");draw();});
 $("vB").addEventListener("click",()=>{setView("B");draw();});

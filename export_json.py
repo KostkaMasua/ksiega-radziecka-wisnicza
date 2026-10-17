@@ -178,8 +178,9 @@ def pnorm(s):
 from collections import defaultdict as _dd2
 p_zawody = _dd2(set)
 p_statusy = _dd2(set)
-p_uwagi = _dd2(list)        # notatki ogólne (pochodzenie/okoliczności)
-p_rodzina = _dd2(list)      # notatki o więzi rodzinnej
+p_uwagi = _dd2(list)        # notatki ogólne z pola 'Uwagi' osoby (pochodzenie/okoliczności), bez więzi rodzinnych
+p_rodzina = _dd2(list)      # notatki o więzi rodzinnej z pola 'Uwagi' osoby
+p_okol = _dd2(list)        # 'Dodatkowe okoliczności' wpisu podpięte pod każdą osobę biorącą udział
 p_rel = _dd2(dict)         # wspolwystepujacy -> {"ile":n, "sprawy":[...]}
 all_zawody = defaultdict(int)
 
@@ -193,6 +194,12 @@ RODZINA_RE = re.compile(
 for e in orig_entries:
     ludzie = e["ludzie"]
     nazwy = [l[0] for l in ludzie if l[0]]
+    # zbiorcza notka okoliczności tej sprawy (podpinana pod każdą osobę biorącą udział)
+    okol_note = ""
+    if e.get("okol"):
+        etykieta = (e["temat"] or e["charakter"] or "sprawa")
+        data_sfx = f" ({e['data']})" if e.get("data") else ""
+        okol_note = f"{etykieta}{data_sfx}: {e['okol']}"
     for (osoba, stan, zaw, uw) in ludzie:
         if not osoba:
             continue
@@ -208,6 +215,8 @@ for e in orig_entries:
                 p_rodzina[key].append(uw)
             else:
                 p_uwagi[key].append(uw)
+        if okol_note and okol_note not in p_okol[key]:
+            p_okol[key].append(okol_note)
         # powiązania: inne osoby z tego samego wpisu
         for inna in nazwy:
             if pnorm(inna)==key:
@@ -232,6 +241,7 @@ for o in idx_osob:
     o["zawody"] = zaw
     o["uwagi"] = uw[:12]
     o["rodzina"] = rodz[:12]
+    o["okolicznosci"] = p_okol.get(key, [])[:12]
     # liczba wystąpień jako int (do sortowania); fallback z pola tekstowego
     try:
         o["liczba_n"] = int(str(o.get("liczba", "")).strip() or 0)

@@ -79,6 +79,79 @@ for r in rows("Indeks miejsc"):
 
 wb.close()
 
+# --- Dociągnięcie Słów kluczy / Tematu / Okoliczności z ORYGINALNEGO pliku ---
+# Oryginał ma po jednym bloku wierszy na wpis (ID w kol. 'ID', kolejne wiersze z pustym ID
+# dokładają osoby). Słowa klucze (kol. 14), Temat sprawy (12), Dodatkowe okoliczności (15)
+# są w pierwszym wierszu bloku. Dopasowujemy do mojego id_wpisu po (data, kolejność w dniu).
+ORIG = r"C:\Users\bartl\.kiro\crew\uploads\4f9d4fa771b449d8a9c9fc1f4dd74319_Księga_radziecka_Wiśnicza_1712-1736.xlsx"
+owb = openpyxl.load_workbook(ORIG, read_only=True, data_only=True)
+ows = owb[owb.sheetnames[0]]
+oit = ows.iter_rows(values_only=True)
+next(oit)  # nagłówek
+def cell(r, i):
+    return "" if i >= len(r) or r[i] is None else str(r[i]).strip()
+orig_entries = []  # w kolejności źródła
+for r in oit:
+    rid = cell(r, 0)
+    if not rid:
+        continue  # wiersz-kontynuacja (dodatkowa osoba)
+    rok, mie, dzien = cell(r, 3), cell(r, 2), cell(r, 1)
+    try:
+        data = f"{int(rok):04d}-{int(mie):02d}-{int(dzien):02d}"
+    except ValueError:
+        data = rok
+    orig_entries.append({
+        "data": data,
+        "skan": cell(r, 5),
+        "temat": cell(r, 12),
+        "slowa": cell(r, 14),
+        "okol": cell(r, 15),
+    })
+owb.close()
+
+# indeks oryginału po (data, skan), zachowując kolejność w obrębie grupy
+from collections import defaultdict as _dd
+orig_by_key = _dd(list)
+for e in orig_entries:
+    orig_by_key[(e["data"], e["skan"])].append(e)
+used = _dd(int)  # ile już zużyto z danej grupy
+
+KW_SEP = re.compile(r"[,;/]+")
+def split_kw(s):
+    return [t.strip() for t in KW_SEP.split(s or "") if t.strip()]
+
+kw_counter = defaultdict(int)
+matched = 0
+# iterujemy w tej samej kolejności, w jakiej wpisy były dodawane (= kolejność źródła)
+for wid, w in wpisy.items():
+    key = (w["data"], str(w["skan"]))
+    slowa = temat = okol = ""
+    lst = orig_by_key.get(key, [])
+    i = used[key]
+    if i < len(lst):
+        src = lst[i]
+        used[key] += 1
+        slowa, temat, okol = src["slowa"], src["temat"], src["okol"]
+        matched += 1
+    w["slowa"] = slowa
+    w["temat"] = temat
+    w["okol"] = okol
+    w["kw"] = split_kw(slowa)
+    for t in w["kw"]:
+        kw_counter[t.lower()] += 1
+
+# słownik haseł do listy rozwijanej: scal warianty wielkości liter, posortuj po częstości
+kw_canon = {}
+for w in wpisy.values():
+    for t in w["kw"]:
+        lk = t.lower()
+        if lk not in kw_canon:
+            kw_canon[lk] = t  # pierwsza napotkana forma
+slowa_klucze = sorted(kw_canon.values(), key=lambda t: (-kw_counter[t.lower()], t.lower()))
+
+print("Dopasowano słowa klucze do", matched, "z", len(wpisy), "wpisów")
+print("Różnych haseł:", len(slowa_klucze))
+
 wpisy_list = list(wpisy.values())
 # sort wpisów po dacie, potem po id
 wpisy_list.sort(key=lambda w: (w["data"], w["id"]))
@@ -96,6 +169,8 @@ out = {
         "lata": lata,
         "typy": typy,
         "role": role,
+        "slowa_klucze": slowa_klucze,
+        "slowa_klucze_top": slowa_klucze[:60],
         "liczba_wpisow": len(wpisy_list),
         "liczba_osob_wierszy": len(osoby_all),
         "liczba_osob_indeks": len(idx_osob),

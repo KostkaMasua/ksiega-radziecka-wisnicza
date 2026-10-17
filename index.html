@@ -91,6 +91,9 @@ blockquote{margin:10px 0 0;font-family:var(--f-src);font-size:16px;line-height:1
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:4px;padding:22px 14px;color:var(--muted)}
 .pages{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .pages .pg{font-family:var(--f-head);font-size:12px;font-weight:600;background:var(--stamp-soft);color:var(--stamp);border-radius:3px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.pages.kw{margin-top:0}
+button.kwchip{font-family:var(--f-head);border:1px solid var(--line);cursor:pointer}
+button.kwchip:hover{background:var(--stamp);color:var(--surface);border-color:var(--stamp)}
 footer{border-top:1px solid var(--line);padding-top:14px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
 footer p{margin:0;max-width:70ch}
 mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
@@ -130,6 +133,11 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
       <label for="rola">Rola osoby w sprawie<select id="rola"></select></label>
       <label for="pew">Pewność odczytu<select id="pew"></select></label>
     </div>
+    <div class="two" id="rowKW">
+      <label for="qk">Słowa klucze<input type="search" id="qk" list="kwlist" placeholder="np. dług, cech, pobicie"></label>
+      <label for="kwsel">Częste hasła<select id="kwsel"></select></label>
+    </div>
+    <datalist id="kwlist"></datalist>
     <label class="check" for="qt" id="lqt" hidden><input type="checkbox" id="qt">Szukaj też w treści streszczenia</label>
     <div class="row"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
   </form>
@@ -162,6 +170,7 @@ function prep(){
     w._nm=norm((w.osoby||[]).map(o=>[o.miejscowosc].join(" ")).join(" ")+" "+(w.streszczenie||""));
     w._nt=norm(w.streszczenie||"");
     w._role=(w.osoby||[]).map(o=>o.rola);
+    w._kw=norm((w.kw||[]).join(" ")+" "+(w.temat||""));
   }
   for(const o of D.osoby_indeks){
     o._n=norm(o.osoba);
@@ -179,6 +188,10 @@ function setup(){
   fillSelect($("rok"),D.meta.lata,"Wszystkie lata");
   fillSelect($("rola"),D.meta.role,"Każda rola");
   fillSelect($("pew"),["wysoka","średnia","niska"],"Każda pewność");
+  // słowa klucze: datalist (wszystkie) + dropdown najczęstszych
+  const kws=D.meta.slowa_klucze||[];
+  $("kwlist").innerHTML=kws.map(k=>`<option value="${esc(k)}">`).join("");
+  fillSelect($("kwsel"),(D.meta.slowa_klucze_top||kws.slice(0,60)),"— wybierz częste hasło —");
   const l=D.meta.lata;
   $("scope").innerHTML=`<strong>Zasób:</strong> ${D.meta.liczba_wpisow.toLocaleString("pl-PL")} wpisów sądowych i ${D.meta.liczba_osob_indeks.toLocaleString("pl-PL")} osób w indeksie, lata ${l[0]}–${l[l.length-1]}. Wybierz widok: wpisy (sprawy) albo osoby (indeks).`;
   // obsługa z URL
@@ -195,6 +208,7 @@ function setView(v,silent){
   const A=v==="A";
   $("rowAB").hidden=!A;          // typ + rok tylko dla wpisów
   $("rowA").hidden=!A;           // rola + pewność tylko dla wpisów
+  $("rowKW").hidden=!A;          // słowa klucze tylko dla wpisów
   $("lqt").hidden=!A;
   $("lqm").style.display="";     // miejscowość: w B szukamy po stronach? -> zmieniamy etykietę
   $("lqm").querySelector("input").placeholder=A?"np. Bochnia":"np. 305 (nr strony)";
@@ -222,6 +236,7 @@ function cardWpis(w0){
       <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
     </div>
     <blockquote>${esc(w0.streszczenie)}</blockquote>
+    ${(w0.kw&&w0.kw.length)?`<div class="pages kw">${w0.kw.map(k=>`<button type="button" class="pg kwchip" data-kw="${esc(k)}">${esc(k)}</button>`).join("")}</div>`:""}
     <details><summary>Osoby w sprawie (${osoby.length})</summary>
       <div class="persons">${pHtml||'<span class="none">brak powiązanych osób</span>'}</div>
     </details>
@@ -242,11 +257,13 @@ function cardOsoba(o){
 function filterWpisy(){
   const qn=norm($("qn").value),qi=norm($("qi").value),qm=norm($("qm").value);
   const typ=$("typ").value,rok=$("rok").value,rola=$("rola").value,pew=$("pew").value,qt=$("qt").checked;
+  const qk=norm($("qk").value||$("kwsel").value);
   return D.wpisy.filter(w0=>{
     if(typ&&w0.typ!==typ)return false;
     if(rok&&w0._rok!==rok)return false;
     if(pew&&w0.pewnosc!==pew)return false;
     if(rola&&!w0._role.includes(rola))return false;
+    if(qk&&!w0._kw.includes(qk))return false;
     if(qn&&!(w0._nn.includes(qn)||(qt&&w0._nt.includes(qn))))return false;
     if(qi&&!w0._ni.includes(qi))return false;
     if(qm&&!w0._nm.includes(qm))return false;
@@ -280,13 +297,16 @@ function draw(keep){
 }
 
 function go(){draw();}
-["qn","qi","qm"].forEach(id=>$(id).addEventListener("input",go));
+["qn","qi","qm","qk"].forEach(id=>$(id).addEventListener("input",go));
 ["typ","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
+$("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
+// klik w hasło na karcie -> ustaw filtr słowa klucz
+$("list").addEventListener("click",e=>{const b=e.target.closest(".kwchip");if(b){$("qk").value=b.dataset.kw;$("kwsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});}});
 $("more").addEventListener("click",()=>{lim+=STEP;draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());
 $("vA").addEventListener("click",()=>{setView("A");draw();});
 $("vB").addEventListener("click",()=>{setView("B");draw();});
-$("clr").addEventListener("click",()=>{["qn","qi","qm"].forEach(id=>$(id).value="");$("typ").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("qt").checked=false;draw();});
+$("clr").addEventListener("click",()=>{["qn","qi","qm","qk"].forEach(id=>$(id).value="");$("typ").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("kwsel").value="";$("qt").checked=false;draw();});
 $("theme").addEventListener("click",()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const next=cur==="dark"?"light":(cur==="light"?"":"dark");

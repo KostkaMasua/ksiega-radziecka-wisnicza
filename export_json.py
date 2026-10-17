@@ -132,25 +132,127 @@ KW_SEP = re.compile(r"[,;/]+")
 def split_kw(s):
     return [t.strip() for t in KW_SEP.split(s or "") if t.strip()]
 
+# --- Redakcja notatki prawno-opisowej z pól źródła ---
+# Składamy czytelną prozę WYŁĄCZNIE z danych źródła (nie dopowiadamy faktów):
+# temat + charakter czynności, strony sporu (Kto/Z kim) ze statusem, opis zdarzenia
+# (Dodatkowe okoliczności) oraz wzmianki o osobach, przy których źródło zapisało uwagę
+# „w tej samej linii” (kolumna Uwagi danej osoby).
+STAN_OPIS = {
+    "honestus": "mieszczanin (uczciwy)", "honesta": "mieszczka (uczciwa)",
+    "famatus": "sławetny (rzemieślnik/kupiec)", "famata": "sławetna",
+    "laboriosus": "pracowity (chłop/robotnik)", "laboriosa": "pracowita",
+    "nobilis": "szlachcic", "generosus": "urodzony (szlachcic)",
+    "infidelis": "niewierny (Żyd)", "providus": "opatrzny (mieszczanin)",
+    "spectabilis": "znakomity (rajca)",
+}
+def opis_stanu(st):
+    return STAN_OPIS.get((st or "").strip().lower(), st)
+
+def zdanie(s):
+    s = (s or "").strip()
+    if not s:
+        return ""
+    if s[-1] not in ".!?":
+        s += "."
+    return s[0].upper() + s[1:]
+
+def redaguj_notatke(src):
+    temat = src.get("temat", "").strip()
+    char = src.get("charakter", "").strip()
+    kto = src.get("kto", "").strip()
+    zkim = src.get("zkim", "").strip()
+    okol = src.get("okol", "").strip()
+    ludzie = src.get("ludzie", [])
+    akapity = []
+
+    # 1) Zdanie wprowadzające: rodzaj czynności + przedmiot sprawy + strony
+    char_fraza = {
+        "Dekret": "Wyrok (dekret) sądu",
+        "Protestacja": "Protestacja (formalny sprzeciw) wniesiona do sądu",
+        "Zeznania": "Zeznania złożone przed sądem",
+        "Oskarżenie": "Oskarżenie wniesione do sądu",
+        "Apelacja": "Apelacja od wcześniejszego rozstrzygnięcia",
+        "Contumax": "Sprawa z powodu niestawiennictwa strony (contumacia)",
+        "Dylacja": "Odroczenie (dylacja) sprawy",
+        "Qvietatio": "Pokwitowanie (quietatio) — zrzeczenie się roszczeń",
+        "Kwitacja": "Pokwitowanie (kwitacja)",
+        "Kwitowanie": "Pokwitowanie",
+        "Roboracja": "Uprawomocnienie (roboracja) czynności",
+        "Zarządzenie": "Zarządzenie urzędu",
+        "Inquisitio": "Dochodzenie (inquisitio) sądowe",
+        "Ogłoszenie": "Ogłoszenie urzędowe",
+    }.get(char, (char or "Czynność sądowa"))
+    wstep = char_fraza
+    if temat:
+        wstep += f" w sprawie: {temat.lower()}"
+    if kto and zkim:
+        wstep += f". Stronami są {kto} (wnoszący) oraz {zkim} (strona przeciwna)"
+    elif kto:
+        wstep += f". Sprawę wnosi {kto}"
+    akapity.append(zdanie(wstep))
+
+    # 2) Opis zdarzenia z „Dodatkowych okoliczności”
+    if okol:
+        akapity.append("Okoliczności sprawy: " + zdanie(okol))
+
+    # 3) Osoby, przy których źródło zapisało uwagę „w tej samej linii”
+    wzmianki = []
+    for (osoba, stan, zaw, uw) in ludzie:
+        osoba = (osoba or "").strip()
+        uw = (uw or "").strip()
+        if not osoba:
+            continue
+        czesci = []
+        if stan:
+            czesci.append(opis_stanu(stan))
+        if zaw:
+            czesci.append(zaw)
+        rola_opis = (", ".join(czesci)) if czesci else ""
+        if uw:
+            # uwaga odnotowana w wierszu tej konkretnej osoby — zaznaczamy to wprost
+            prefix = f"{osoba}"
+            if rola_opis:
+                prefix += f" ({rola_opis})"
+            wzmianki.append(f"przy osobie {prefix} źródło odnotowuje: {zdanie(uw)}")
+    if wzmianki:
+        akapity.append("Wzmianki osobowe — " + " ".join(
+            w[0].upper() + w[1:] for w in wzmianki))
+
+    return "\n\n".join(a for a in akapity if a)
+
 kw_counter = defaultdict(int)
 matched = 0
+charaktery_set = {}
+tematy_set = {}
 # iterujemy w tej samej kolejności, w jakiej wpisy były dodawane (= kolejność źródła)
 for wid, w in wpisy.items():
     key = (w["data"], str(w["skan"]))
-    slowa = temat = okol = ""
+    slowa = temat = okol = char = ""
+    notatka = ""
     lst = orig_by_key.get(key, [])
     i = used[key]
     if i < len(lst):
         src = lst[i]
         used[key] += 1
         slowa, temat, okol = src["slowa"], src["temat"], src["okol"]
+        char = src.get("charakter", "")
+        notatka = redaguj_notatke(src)
         matched += 1
     w["slowa"] = slowa
     w["temat"] = temat
+    w["charakter"] = char          # Charakter wpisu (rodzaj czynności sądowej)
     w["okol"] = okol
+    w["notatka"] = notatka         # zredagowana notatka prawno-opisowa
     w["kw"] = split_kw(slowa)
+    if char and char != "-":
+        charaktery_set[char] = charaktery_set.get(char, 0) + 1
+    if temat and temat != "-":
+        tematy_set[temat] = tematy_set.get(temat, 0) + 1
     for t in w["kw"]:
         kw_counter[t.lower()] += 1
+
+charaktery = sorted(charaktery_set, key=lambda c: (-charaktery_set[c], c.lower()))
+tematy = sorted(tematy_set, key=lambda t: (-tematy_set[t], t.lower()))
 
 # słownik haseł do listy rozwijanej: scal warianty wielkości liter, posortuj po częstości
 kw_canon = {}
@@ -279,6 +381,8 @@ out = {
     "meta": {
         "lata": lata,
         "typy": typy,
+        "charaktery": charaktery,     # Charakter wpisu (rodzaj czynności) — do filtra
+        "tematy": tematy,             # Temat sprawy (przedmiot) — do filtra
         "role": role,
         "slowa_klucze": slowa_klucze,
         "slowa_klucze_top": slowa_klucze[:60],

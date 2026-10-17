@@ -99,6 +99,10 @@ button.kwchip{font-family:var(--f-head);border:1px solid var(--line);cursor:poin
 button.kwchip:hover{background:var(--stamp);color:var(--surface);border-color:var(--stamp)}
 .rels{margin-top:10px;display:flex;flex-direction:column;gap:12px}
 .relrow{display:flex;flex-direction:column;gap:5px}
+.relrow.fam{border-left:3px solid var(--low);padding-left:10px}
+.relrow.occ{border-left:3px solid var(--civ);padding-left:10px}
+.relrow.soc{border-left:3px solid var(--mid);padding-left:10px}
+.relrow.cases{border-left:3px solid var(--stamp);padding-left:10px}
 .rellbl{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 button.zawchip{font-family:var(--f-head);font-size:12px;font-weight:600;background:transparent;color:var(--civ);border:1px solid var(--civ);border-radius:3px;padding:3px 8px;cursor:pointer}
@@ -158,6 +162,12 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
     <datalist id="kwlist"></datalist>
     <div class="two" id="rowZAW" hidden>
       <label for="qz">Zawód / urząd<input type="search" id="qz" list="zawlist" placeholder="np. Consul, Rzeźnik, Cechmistrz"></label>
+      <label for="sortb">Sortuj osoby<select id="sortb">
+        <option value="alfa">alfabetycznie (A→Z)</option>
+        <option value="wyst">po liczbie wystąpień (malejąco)</option>
+      </select></label>
+    </div>
+    <div class="two" id="rowZAW2" hidden>
       <label for="zawsel">Częste zawody<select id="zawsel"></select></label>
     </div>
     <datalist id="zawlist"></datalist>
@@ -238,6 +248,7 @@ function setView(v,silent){
   $("rowA").hidden=!A;           // rola + pewność tylko dla wpisów
   $("rowKW").hidden=!A;          // słowa klucze tylko dla wpisów
   $("rowZAW").hidden=A;          // zawód tylko dla osób (widok B)
+  $("rowZAW2").hidden=A;         // częste zawody tylko dla osób
   $("lqt").hidden=!A;
   $("lqm").style.display="";     // miejscowość: w B szukamy po stronach? -> zmieniamy etykietę
   $("lqm").querySelector("input").placeholder=A?"np. Bochnia":"np. 305 (nr strony)";
@@ -276,16 +287,20 @@ function cardOsoba(o){
   const strony=(o.strony||"").split(/[,;]\s*/).filter(Boolean);
   const zawody=(o.zawody||[]);
   const uwagi=(o.uwagi||[]);
+  const rodzina=(o.rodzina||[]);
   const pow=(o.powiazania||[]);
   const statusy=(o.statusy||"").split(/[,;]\s*/).filter(Boolean);
-  // sekcja powiązań zawodowych/społecznych (zawody + statusy)
-  const zawHtml=zawody.length?`<div class="relrow"><span class="rellbl">Zawodowe / urzędy</span><div class="chips">${zawody.map(z=>`<button type="button" class="pg zawchip" data-zaw="${esc(z)}">${esc(z)}</button>`).join("")}</div></div>`:"";
-  const stHtml=statusy.length?`<div class="relrow"><span class="rellbl">Status społeczny</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
-  // rodzinne / społeczne — z notatek źródła
-  const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Notatki (rodzina / pochodzenie / okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
-  // powiązania przez wspólne sprawy
-  const relHtml=pow.length?`<div class="relrow"><span class="rellbl">Powiązania przez sprawy (${pow.length})</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>esc(s)).join(" · ")}</div></div>`).join("")}</div></div>`:"";
-  const hasRel=zawHtml||stHtml||uwHtml||relHtml;
+  // 1) RODZINNE — z notatek o więzi pokrewieństwa
+  const rodzHtml=rodzina.length?`<div class="relrow fam"><span class="rellbl">👪 Powiązania rodzinne</span><ul class="uwlist">${rodzina.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
+  // 2) ZAWODOWE — zawody/urzędy (klikalne)
+  const zawHtml=zawody.length?`<div class="relrow occ"><span class="rellbl">⚒ Powiązania zawodowe (urzędy, cechy)</span><div class="chips">${zawody.map(z=>`<button type="button" class="pg zawchip" data-zaw="${esc(z)}">${esc(z)}</button>`).join("")}</div></div>`:"";
+  // 3) SPOŁECZNE — status stanowy
+  const stHtml=statusy.length?`<div class="relrow soc"><span class="rellbl">🏛 Powiązania społeczne (status stanowy)</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
+  // 4) INNE notatki (pochodzenie, okoliczności)
+  const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Inne notatki źródła (pochodzenie, okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
+  // 5) PRZEZ SPRAWY — współwystępowanie (NIE implikuje pokrewieństwa)
+  const relHtml=pow.length?`<div class="relrow cases"><span class="rellbl">⚖ Powiązania przez wspólne sprawy (${pow.length}) — współwystępowanie, nie pokrewieństwo</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>esc(s)).join(" · ")}</div></div>`).join("")}</div></div>`:"";
+  const hasRel=rodzHtml||zawHtml||stHtml||uwHtml||relHtml;
   return `<article class="rec">
     <div class="top"><div class="name">${esc(o.osoba)}</div><div class="born">${esc(o.liczba)||"?"} wyst.</div></div>
     <dl>
@@ -293,7 +308,7 @@ function cardOsoba(o){
       <dt>Status</dt><dd>${o.statusy?esc(o.statusy):'<span class="none">brak w źródle</span>'}</dd>
       <dt>Strony</dt><dd><div class="pages">${strony.length?strony.map(s=>`<span class="pg">str. ${esc(s)}</span>`).join(""):'<span class="none">—</span>'}</div></dd>
     </dl>
-    ${hasRel?`<details><summary>Powiązania rodzinne, zawodowe i społeczne</summary><div class="rels">${zawHtml}${stHtml}${uwHtml}${relHtml}</div></details>`:""}
+    ${hasRel?`<details><summary>Powiązania osoby</summary><div class="rels">${rodzHtml}${zawHtml}${stHtml}${uwHtml}${relHtml}</div></details>`:""}
   </article>`;
 }
 
@@ -316,13 +331,20 @@ function filterWpisy(){
 function filterOsoby(){
   const qn=norm($("qn").value),qi=norm($("qi").value),qm=($("qm").value||"").trim();
   const qz=norm($("qz").value||$("zawsel").value);
-  return D.osoby_indeks.filter(o=>{
+  const res=D.osoby_indeks.filter(o=>{
     if(qn&&!o._n.includes(qn))return false;
     if(qi&&!o._n.includes(qi))return false;
     if(qm&&!(o.strony||"").split(/[,;]\s*/).includes(qm))return false;
     if(qz&&!(o._z||"").includes(qz))return false;
     return true;
   });
+  const sort=$("sortb")?$("sortb").value:"alfa";
+  if(sort==="wyst"){
+    res.sort((a,b)=>(b.liczba_n||0)-(a.liczba_n||0)||a.osoba.localeCompare(b.osoba,"pl"));
+  }else{
+    res.sort((a,b)=>a.osoba.localeCompare(b.osoba,"pl"));
+  }
+  return res;
 }
 
 function plural(n,a,b,c){return n===1?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?b:c);}
@@ -344,6 +366,7 @@ function draw(keep){
 function go(){draw();}
 ["qn","qi","qm","qk","qz"].forEach(id=>$(id).addEventListener("input",go));
 ["typ","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
+$("sortb").addEventListener("change",go);
 $("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
 $("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
 // kliknięcia na kartach: hasło (A), zawód/osoba-powiązana (B)

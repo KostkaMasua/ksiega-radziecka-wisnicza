@@ -178,9 +178,17 @@ def pnorm(s):
 from collections import defaultdict as _dd2
 p_zawody = _dd2(set)
 p_statusy = _dd2(set)
-p_uwagi = _dd2(list)
-p_rel = _dd2(dict)      # wspolwystepujacy -> {"ile":n, "sprawy":[...]}
+p_uwagi = _dd2(list)        # notatki ogólne (pochodzenie/okoliczności)
+p_rodzina = _dd2(list)      # notatki o więzi rodzinnej
+p_rel = _dd2(dict)         # wspolwystepujacy -> {"ile":n, "sprawy":[...]}
 all_zawody = defaultdict(int)
+
+# słowa wskazujące na realną więź rodzinną w notatce
+RODZINA_RE = re.compile(
+    r"\b(brat|brata|bracia|siostr|ojc|ojciec|matk|matka|syn|syna|córk|cork|"
+    r"żon|zon|mąż|maz|małżon|malzon|teść|tesc|teści|tesci|szwagr|zięć|ziec|"
+    r"wdow|pasierb|macoch|ojczym|wnuk|dziadek|babk|krewn|rodzic|rodzeństw|rodzenstw)",
+    re.IGNORECASE)
 
 for e in orig_entries:
     ludzie = e["ludzie"]
@@ -196,7 +204,10 @@ for e in orig_entries:
         if stan:
             p_statusy[key].add(stan)
         if uw:
-            p_uwagi[key].append(uw)
+            if RODZINA_RE.search(uw):
+                p_rodzina[key].append(uw)
+            else:
+                p_uwagi[key].append(uw)
         # powiązania: inne osoby z tego samego wpisu
         for inna in nazwy:
             if pnorm(inna)==key:
@@ -214,11 +225,18 @@ for o in idx_osob:
     zaw = sorted(p_zawody.get(key, []))
     stat = sorted(p_statusy.get(key, []))
     uw = p_uwagi.get(key, [])
+    rodz = p_rodzina.get(key, [])
     rel = p_rel.get(key, {})
     # top powiązań po liczbie wspólnych spraw
     rel_list = sorted(rel.items(), key=lambda kv: -kv[1]["ile"])
     o["zawody"] = zaw
     o["uwagi"] = uw[:12]
+    o["rodzina"] = rodz[:12]
+    # liczba wystąpień jako int (do sortowania); fallback z pola tekstowego
+    try:
+        o["liczba_n"] = int(str(o.get("liczba", "")).strip() or 0)
+    except ValueError:
+        o["liczba_n"] = 0
     # statusy w indeksie mogą już być; uzupełnij jeśli puste
     if not o.get("statusy"):
         o["statusy"] = ", ".join(stat)

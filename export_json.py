@@ -191,61 +191,67 @@ def rola_strona(nazwa, typ):
 
 def redaguj_notatke(src):
     temat = src.get("temat", "").strip()
-    char = src.get("charakter", "").strip()
     kto = src.get("kto", "").strip()
     zkim = src.get("zkim", "").strip()
     okol = src.get("okol", "").strip()
-    akapity = []
+    ludzie = src.get("ludzie", [])
 
-    # 1) Zdanie wprowadzające: rodzaj czynności sądowej (w naturalnej, odmienionej formie)
-    char_fraza = {
-        "Dekret": "Wyrok (dekret) sądu",
-        "Protestacja": "Protestacja (formalny sprzeciw) wniesiona do sądu",
-        "Protestacja, obdukcja": "Protestacja wraz z obdukcją (oględzinami obrażeń)",
-        "Protestacja z obdukcją": "Protestacja wraz z obdukcją (oględzinami obrażeń)",
-        "Reprotestacja": "Reprotestacja (ponowny sprzeciw)",
-        "Manifestacja": "Manifestacja (uroczyste oświadczenie) wniesiona do sądu",
-        "Zeznania": "Zeznania złożone przed sądem",
-        "Oskarżenie": "Oskarżenie wniesione do sądu",
-        "Apelacja": "Apelacja od wcześniejszego rozstrzygnięcia",
-        "Contumax": "Sprawa prowadzona z powodu niestawiennictwa strony (contumacia)",
-        "Dylacja": "Odroczenie (dylacja) sprawy",
-        "Qvietatio": "Pokwitowanie (quietatio) — zrzeczenie się roszczeń",
-        "Kwitacja": "Pokwitowanie (kwitacja)",
-        "Kwitowanie": "Pokwitowanie",
-        "Roboracja": "Uprawomocnienie (roboracja) czynności",
-        "Zarządzenie": "Zarządzenie urzędu",
-        "Inquisitio": "Dochodzenie (inquisitio) sądowe",
-        "Inkwizycja": "Dochodzenie (inkwizycja) sądowe",
-        "Obdukcja": "Obdukcja (oględziny obrażeń)",
-        "Ogłoszenie": "Ogłoszenie urzędowe",
-        "Elekcja": "Elekcja (wybór) urzędników",
-        "Nominacja": "Nominacja urzędowa",
-    }.get(char, (char or "Czynność sądowa"))
-    akapity.append(zdanie(char_fraza))
-
-    # 2) Przedmiot sprawy — temat jako etykieta w mianowniku (poprawnie, bez wymuszania odmiany)
-    if temat and temat != "-":
-        akapity.append(f"Przedmiot sprawy: {temat}.")
-
-    # 3) Strony sporu — z poprawną deklinacją rodzaju i liczby
+    # --- STRONY: zdanie z deklinacją rodzajową (charakter jest już w nagłówku karty) ---
+    strony = ""
     if kto and zkim:
-        akapity.append(
-            f"Stronami są {kto} ({rola_strona(kto,'wnosi')}) "
-            f"oraz {zkim} ({rola_strona(zkim,'przeciw')})."
-        )
+        strony = (f"{kto} ({rola_strona(kto,'wnosi')}) "
+                  f"oraz {zkim} ({rola_strona(zkim,'przeciw')}).")
     elif kto:
-        rs = rola_strona(kto, 'wnosi')
-        akapity.append(f"Jako {rs} występuje {kto}.")
+        strony = f"{kto} ({rola_strona(kto,'wnosi')})."
     elif zkim:
-        rs = rola_strona(zkim, 'przeciw')
-        akapity.append(f"Jako {rs} występuje {zkim}.")
+        strony = f"{zkim} ({rola_strona(zkim,'przeciw')})."
 
-    # 4) Opis zdarzenia z „Dodatkowych okoliczności” — JEDYNE źródło treści opisowej notatki
+    # --- OKOLICZNOŚCI: pole „Dodatkowe okoliczności” + uwagi osób wzmiankowanych ---
+    # Imię/nazwisko powódki (do zamiany zaimka „ją/jej” na nazwę, gdy jednoznaczne).
+    powod_nazwa = kto or ""
+    zdania = []
+    def biernik_f(nazwa):
+        # prosty biernik żeńskich nazwisk: -owa→-ową, -a→-ą (dla „pobił ją” → „pobił …ą”)
+        n = nazwa.strip()
+        if n.endswith("owa"):
+            return n[:-3] + "ową"
+        if n.endswith("ska") or n.endswith("cka") or n.endswith("dzka"):
+            return n[:-1] + "ą"
+        if n.endswith("a"):
+            return n[:-1] + "ą"
+        return n
     if okol:
-        akapity.append("Okoliczności sprawy: " + zdanie(okol))
+        tekst = okol.strip()
+        if powod_nazwa and rodzaj_osoby(powod_nazwa) == "f":
+            tekst = re.sub(r"\bją\b", biernik_f(powod_nazwa), tekst, count=1)
+            tekst = re.sub(r"\bjej\b", powod_nazwa, tekst, count=1)
+        zdania.append(zdanie(tekst))
+    # dopisz uwagi osób wzmiankowanych (pole Uwagi w linii danej osoby) — ALE tylko
+    # te opisujące zdarzenie, nie czyste etykiety pokrewieństwa/pochodzenia/statusu.
+    POKREW_ONLY = re.compile(r"^(mąż|maz|żona|zona|wdowa|wdowiec|brat|siostra|syn|córka|corka|"
+                             r"ojciec|matka|teść|tesc|teściowa|tesciowa|szwagier|szwagierka|"
+                             r"pasierb|pasierbica|macocha|ojczym|mieszczanin|mieszczka|"
+                             r"obywatel|obywatelka|ze wsi|z miasta)\b.{0,30}$",
+                             re.IGNORECASE)
+    for l in ludzie:
+        osoba = (l[0] or "").strip() if len(l) > 0 else ""
+        uw = (l[3] or "").strip() if len(l) > 3 else ""
+        if not uw or not osoba:
+            continue
+        if POKREW_ONLY.match(uw):
+            continue  # sama relacja pokrewieństwa — jest już w kafelku osoby
+        # uwaga opisowa: wpleć z podmiotem = nazwa osoby, gdy zdanie go nie ma
+        u = uw.strip()
+        imie_nazwa = osoba.split()[-1] if osoba else osoba
+        # jeśli uwaga zaczyna się od zaimka/bezokolicznika, dodaj podmiot
+        if re.match(r"^(nie było go|nie było jej|był|była|grał|grała|wstąpił|"
+                    r"wstąpiła|stanął|stanęła|bronił|broniła|szukał|przyszedł|"
+                    r"przyszła|został|została|grali|mieszka|mieszkał)", u, re.IGNORECASE):
+            u = f"{osoba}: {u[0].lower()}{u[1:]}"
+        zdania.append(zdanie(u))
+    okol_txt = " ".join(z for z in zdania if z).strip()
 
-    return " ".join(a for a in akapity if a).strip()
+    return {"strony": strony, "okol": okol_txt}
 
 kw_counter = defaultdict(int)
 matched = 0
@@ -263,13 +269,16 @@ for wid, w in wpisy.items():
         used[key] += 1
         slowa, temat, okol = src["slowa"], src["temat"], src["okol"]
         char = src.get("charakter", "")
-        notatka = redaguj_notatke(src)
+        nota = redaguj_notatke(src)
         matched += 1
+    else:
+        nota = {"strony": "", "okol": ""}
     w["slowa"] = slowa
     w["temat"] = temat
     w["charakter"] = char          # Charakter wpisu (rodzaj czynności sądowej)
     w["okol"] = okol
-    w["notatka"] = notatka         # zredagowana notatka prawno-opisowa
+    w["nota_strony"] = nota["strony"]   # „Strony: …” (z deklinacją rodzajową)
+    w["nota_okol"] = nota["okol"]       # „Okoliczności sprawy: …” (okol + uwagi osób)
     w["kw"] = split_kw(slowa)
     if char and char != "-":
         charaktery_set[char] = charaktery_set.get(char, 0) + 1
@@ -462,8 +471,8 @@ if _os.path.exists(BAZA1):
         _bycount[_bycount_key] += 1
         nn = f"{_bycount[_bycount_key]:02d}"
         wid = f"{e['data']}_{nn}"
-        # złóż notatkę prawno-opisową (tylko z Dodatkowych okoliczności, jak w bazie głównej)
-        notatka = redaguj_notatke(e)
+        # złóż notatkę (Strony + Okoliczności, z wplecionymi uwagami osób wzmiankowanych)
+        nota_wpisu = redaguj_notatke(e)
         osoby_wpisu = []
         nazwy_norm = [pnorm(l[0]) for l in e["ludzie"] if l[0] and not is_junk(l[0])]
         for (osoba, stan, zaw, uw, rola, skad) in e["ludzie"]:
@@ -525,7 +534,8 @@ if _os.path.exists(BAZA1):
             "typ": e["charakter"], "streszczenie": "",
             "pewnosc": "wysoka", "zrodlo": "radziecka 1712–1713",
             "temat": e["temat"], "charakter": e["charakter"],
-            "slowa": e["slowa"], "okol": e["okol"], "notatka": notatka,
+            "slowa": e["slowa"], "okol": e["okol"],
+            "nota_strony": nota_wpisu["strony"], "nota_okol": nota_wpisu["okol"],
             "kw": split_kw(e["slowa"]), "osoby": osoby_wpisu,
         }
         for t in wpisy[wid]["kw"]:
@@ -598,6 +608,18 @@ if _os.path.exists(BAZA1):
     print("Dołączono Baza1 1712–1713:", len(b1_entries), "wpisów,", b1_rows_count, "wierszy osób")
 else:
     print("UWAGA: nie znaleziono", BAZA1, "— pomijam dołączenie 1712–1713")
+
+# sortowanie osób w każdym wpisie wg roli: powód → pozwany → wzmiankowani
+def _rola_rank(rola):
+    r = (rola or "").lower()
+    if "powod" in r or "wnosz" in r:
+        return 0
+    if "pozwan" in r or "przeciw" in r:
+        return 1
+    return 2
+for _w in wpisy.values():
+    if _w.get("osoby"):
+        _w["osoby"].sort(key=lambda o: _rola_rank(o.get("rola", "")))
 
 wpisy_list = list(wpisy.values())
 # sort wpisów po dacie, potem po id

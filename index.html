@@ -90,6 +90,8 @@ summary{cursor:pointer;font-family:var(--f-head);font-weight:600;font-size:13px;
 .role.poz{background:transparent;border:1px solid var(--low);color:var(--low)}
 .pmeta{color:var(--muted);font-size:13px}
 blockquote{margin:10px 0 0;font-family:var(--f-src);font-size:16px;line-height:1.55;max-width:66ch}
+blockquote p{margin:0 0 8px}
+blockquote p:last-child{margin-bottom:0}
 .morebtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--surface);background:var(--stamp);border:0;border-radius:4px;padding:14px;cursor:pointer;width:100%}
 .empty{background:var(--surface);border:1px dashed var(--line);border-radius:4px;padding:22px 14px;color:var(--muted)}
 .pages{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
@@ -151,12 +153,19 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
       <label for="qm" id="lqm">Miejscowość<input type="search" id="qm" placeholder="np. Bochnia"></label>
     </div>
     <div class="two" id="rowAB">
-      <label for="typ" id="ltyp">Typ sprawy<select id="typ"></select></label>
-      <label for="rok" id="lrok">Rok<select id="rok"></select></label>
+      <label for="temat" id="ltemat">Temat sprawy<select id="temat"></select></label>
+      <label for="char" id="lchar">Charakter wpisu<select id="char"></select></label>
     </div>
     <div class="two" id="rowA">
       <label for="rola">Rola osoby w sprawie<select id="rola"></select></label>
       <label for="pew">Pewność odczytu<select id="pew"></select></label>
+    </div>
+    <div class="two" id="rowA2">
+      <label for="rok" id="lrok">Rok<select id="rok"></select></label>
+      <label for="sortd">Sortuj wpisy<select id="sortd">
+        <option value="data-asc">po dacie (od najstarszych)</option>
+        <option value="data-desc">po dacie (od najnowszych)</option>
+      </select></label>
     </div>
     <div class="two" id="rowKW">
       <label for="qk">Słowa klucze<input type="search" id="qk" list="kwlist" placeholder="np. dług, cech, pobicie"></label>
@@ -232,7 +241,8 @@ function fillSelect(el,arr,allLabel){
 
 function setup(){
   prep();
-  fillSelect($("typ"),D.meta.typy.filter(t=>t&&t!=="-"),"Wszystkie typy");
+  fillSelect($("temat"),(D.meta.tematy||[]).filter(t=>t&&t!=="-"),"Wszystkie tematy");
+  fillSelect($("char"),(D.meta.charaktery||[]).filter(t=>t&&t!=="-"),"Każdy charakter");
   fillSelect($("rok"),D.meta.lata,"Wszystkie lata");
   fillSelect($("rola"),D.meta.role,"Każda rola");
   fillSelect($("pew"),["wysoka","średnia","niska"],"Każda pewność");
@@ -258,8 +268,9 @@ function setView(v,silent){
   $("vA").setAttribute("aria-pressed",v==="A");
   $("vB").setAttribute("aria-pressed",v==="B");
   const A=v==="A";
-  $("rowAB").hidden=!A;          // typ + rok tylko dla wpisów
+  $("rowAB").hidden=!A;          // temat + charakter tylko dla wpisów
   $("rowA").hidden=!A;           // rola + pewność tylko dla wpisów
+  $("rowA2").hidden=!A;          // rok + sortowanie po dacie tylko dla wpisów
   $("rowKW").hidden=!A;          // słowa klucze tylko dla wpisów
   $("rowZAW").hidden=A;          // zawód tylko dla osób (widok B)
   $("rowZAW2").hidden=A;         // częste zawody tylko dla osób
@@ -282,17 +293,17 @@ function cardWpis(w0){
     return `<div class="person"><span class="role ${cls}">${esc(o.rola||"osoba")}</span><span class="pn">${esc(o.nazwisko)} <span>${esc(o.imie&&o.imie!=="—"?o.imie:"")}</span></span>${meta?`<span class="pmeta">${meta}</span>`:""}</div>`;
   }).join("");
   return `<article class="rec" id="${esc(w0.id)}">
-    <div class="top"><div class="name">${esc(w0.typ||"Wpis")}</div><div class="born">${dataOpis(w0.data)}</div></div>
+    <div class="top"><div class="name">${esc(w0.temat||w0.charakter||"Wpis")}</div><div class="born">${dataOpis(w0.data)}</div></div>
     <div class="ref">
-      <span class="tag typ">sprawa</span>
+      ${w0.charakter?`<span class="tag typ">${esc(w0.charakter)}</span>`:`<span class="tag typ">wpis</span>`}
       <span class="tag">skan ${esc(w0.skan)}</span>
       ${pew?`<span class="tag pew-${esc(pew)}">odczyt: ${esc(pew)}</span>`:""}
       <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
     </div>
-    <blockquote>${esc(w0.streszczenie)}</blockquote>
-    ${w0.okol?`<div class="okol"><span class="rellbl">📝 Dodatkowe okoliczności</span><p>${esc(w0.okol)}</p></div>`:""}
+    <blockquote>${(w0.notatka?esc(w0.notatka):esc(w0.streszczenie)).replace(/\n\n/g,"</p><p>").replace(/^/,"<p>").replace(/$/,"</p>")}</blockquote>
+    ${w0.okol&&!(w0.notatka||"").includes(w0.okol)?`<div class="okol"><span class="rellbl">📝 Dodatkowe okoliczności</span><p>${esc(w0.okol)}</p></div>`:""}
     ${(w0.kw&&w0.kw.length)?`<div class="pages kw">${w0.kw.map(k=>`<button type="button" class="pg kwchip" data-kw="${esc(k)}">${esc(k)}</button>`).join("")}</div>`:""}
-    <details><summary>Osoby w sprawie (${osoby.length})</summary>
+    <details><summary>Kto z kim — osoby w sprawie (${osoby.length})</summary>
       <div class="persons">${pHtml||'<span class="none">brak powiązanych osób</span>'}</div>
     </details>
   </article>`;
@@ -332,10 +343,11 @@ function cardOsoba(o){
 
 function filterWpisy(){
   const qn=norm($("qn").value),qi=norm($("qi").value),qm=norm($("qm").value);
-  const typ=$("typ").value,rok=$("rok").value,rola=$("rola").value,pew=$("pew").value,qt=$("qt").checked;
+  const temat=$("temat").value,char=$("char").value,rok=$("rok").value,rola=$("rola").value,pew=$("pew").value,qt=$("qt").checked;
   const qk=norm($("qk").value||$("kwsel").value);
-  return D.wpisy.filter(w0=>{
-    if(typ&&w0.typ!==typ)return false;
+  const res=D.wpisy.filter(w0=>{
+    if(temat&&w0.temat!==temat)return false;
+    if(char&&w0.charakter!==char)return false;
     if(rok&&w0._rok!==rok)return false;
     if(pew&&w0.pewnosc!==pew)return false;
     if(rola&&!w0._role.includes(rola))return false;
@@ -345,6 +357,12 @@ function filterWpisy(){
     if(qm&&!w0._nm.includes(qm))return false;
     return true;
   });
+  const sd=$("sortd")?$("sortd").value:"data-asc";
+  res.sort((a,b)=>{
+    const c=(a.data||"").localeCompare(b.data||"")||(a.id||"").localeCompare(b.id||"");
+    return sd==="data-desc"?-c:c;
+  });
+  return res;
 }
 function filterOsoby(){
   const qn=norm($("qn").value),qi=norm($("qi").value),qm=($("qm").value||"").trim();
@@ -384,8 +402,9 @@ function draw(keep){
 
 function go(){draw();}
 ["qn","qi","qm","qk","qz"].forEach(id=>$(id).addEventListener("input",go));
-["typ","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
+["temat","char","rok","rola","pew","qt"].forEach(id=>$(id).addEventListener("change",go));
 $("sortb").addEventListener("change",go);
+$("sortd").addEventListener("change",go);
 $("perpage").addEventListener("change",go);
 $("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
 $("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
@@ -402,7 +421,7 @@ $("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());
 $("vA").addEventListener("click",()=>{setView("A");draw();});
 $("vB").addEventListener("click",()=>{setView("B");draw();});
-$("clr").addEventListener("click",()=>{["qn","qi","qm","qk","qz"].forEach(id=>$(id).value="");$("typ").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("kwsel").value="";$("zawsel").value="";$("qt").checked=false;draw();});
+$("clr").addEventListener("click",()=>{["qn","qi","qm","qk","qz"].forEach(id=>$(id).value="");$("temat").value="";$("char").value="";$("rok").value="";$("rola").value="";$("pew").value="";$("kwsel").value="";$("zawsel").value="";$("qt").checked=false;draw();});
 $("theme").addEventListener("click",()=>{
   const cur=document.documentElement.getAttribute("data-theme");
   const next=cur==="dark"?"light":(cur==="light"?"":"dark");

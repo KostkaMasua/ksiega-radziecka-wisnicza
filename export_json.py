@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Eksport bazy radzieckiej xlsx -> data.json dla strony GitHub Pages."""
-import openpyxl, json, re
+import openpyxl, json, re, os
 from collections import defaultdict
 
 SRC = r"C:\Users\bartl\.kiro\crew\workspace\Baza_Ksiega_radziecka_Wisnicza_1712-1736.xlsx"
@@ -272,9 +272,12 @@ for wid, w in wpisy.items():
         slowa, temat, okol = src["slowa"], src["temat"], src["okol"]
         char = src.get("charakter", "")
         nota = redaguj_notatke(src)
+        w["_okol_key"] = re.sub(r"\s+", " ",
+            " ".join(o[1] for o in src.get("okol_list", [])).lower()).strip()
         matched += 1
     else:
         nota = {"strony": "", "okol": ""}
+        w["_okol_key"] = ""
     w["slowa"] = slowa
     w["temat"] = temat
     w["charakter"] = char          # Charakter wpisu (rodzaj czynności sądowej)
@@ -544,6 +547,8 @@ if _os.path.exists(BAZA1):
             "temat": e["temat"], "charakter": e["charakter"],
             "slowa": e["slowa"], "okol": e["okol"],
             "nota_strony": nota_wpisu["strony"], "nota_okol": nota_wpisu["okol"],
+            "_okol_key": re.sub(r"\s+", " ",
+                " ".join(t for (_o, t) in e.get("okol_list", [])).lower()).strip(),
             "kw": split_kw(e["slowa"]), "osoby": osoby_wpisu,
         }
         for t in wpisy[wid]["kw"]:
@@ -616,6 +621,25 @@ if _os.path.exists(BAZA1):
     print("Dołączono Baza1 1712–1713:", len(b1_entries), "wpisów,", b1_rows_count, "wierszy osób")
 else:
     print("UWAGA: nie znaleziono", BAZA1, "— pomijam dołączenie 1712–1713")
+
+# --- Zredagowane notatki AI (wersja B): nadpisz nota_okol dla pasujących id ---
+# Plik nota_red.json (id -> zredagowany opis) jest trwałą częścią repo, więc
+# regeneracja z xlsx zachowuje redakcję. Brak pliku = zostają notatki szablonowe.
+_RED = os.path.join(os.path.dirname(os.path.dirname(OUT)), "nota_red.json")
+_red_applied = 0
+if os.path.exists(_RED):
+    red = json.load(open(_RED, encoding="utf-8"))
+    for _w in wpisy.values():
+        k = _w.get("_okol_key", "")
+        if k and k in red:
+            _w["nota_okol"] = red[k]
+            _red_applied += 1
+    print("Zastosowano zredagowanych notatek AI:", _red_applied, "z", len(red))
+else:
+    print("UWAGA: brak nota_red.json — notatki pozostają szablonowe")
+# usuń pole pomocnicze z danych wyjściowych
+for _w in wpisy.values():
+    _w.pop("_okol_key", None)
 
 # sortowanie osób w każdym wpisie wg roli: powód → pozwany → wzmiankowani
 def _rola_rank(rola):

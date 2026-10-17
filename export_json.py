@@ -31,6 +31,7 @@ for r in rows("WPISY (Tabela A)"):
         "typ": r.get("typ", ""),
         "streszczenie": r.get("streszczenie", ""),
         "pewnosc": r.get("pewność", ""),
+        "zrodlo": "radziecka 1724–1736",
         "osoby": [],
     }
 
@@ -329,6 +330,213 @@ for o in idx_osob:
 zawody_lista = sorted(all_zawody, key=lambda z: (-all_zawody[z], z.lower()))
 print("Osób z powiązaniami:", rel_hits, "z", len(idx_osob))
 print("Różnych zawodów:", len(zawody_lista))
+
+# =====================================================================
+# DOŁĄCZENIE BAZY 1712–1713 (H:\Wiśnicz\Baza1.xlsx)
+# Inny, bogatszy schemat kolumn: ma jawną 'Rola' (10) i 'Skąd?' (12),
+# przez co kolumny po nich są przesunięte względem bazy 1724–1736.
+# Budujemy wpisy/osoby/miejsca bezpośrednio z tego pliku i scalamy.
+# =====================================================================
+BAZA1 = r"H:\Wiśnicz\Baza1.xlsx"
+import os as _os
+if _os.path.exists(BAZA1):
+    b1 = openpyxl.load_workbook(BAZA1, read_only=True, data_only=True)
+    bws = b1[b1.sheetnames[0]]
+    bit = bws.iter_rows(values_only=True)
+    next(bit)  # nagłówek
+    def bc(r, i):
+        return "" if i >= len(r) or r[i] is None else str(r[i]).strip()
+    # mapowanie kolumn Baza1
+    B = dict(ID=0, DZ=1, MI=2, RO=3, STR=4, SKAN=5, KTO=6, ZKIM=7, STAN=8,
+             OSOBA=9, ROLA=10, ZAW=11, SKAD=12, UW=13, TEMAT=14, CHAR=15,
+             SLOWA=16, OKOL=17)
+    b1_entries = []
+    cur = None
+    for r in bit:
+        if bc(r, B["ID"]):
+            rok, mie, dz = bc(r, B["RO"]), bc(r, B["MI"]), bc(r, B["DZ"])
+            try:
+                data = f"{int(rok):04d}-{int(mie):02d}-{int(dz):02d}"
+            except ValueError:
+                data = rok
+            cur = {
+                "id_src": bc(r, B["ID"]), "data": data,
+                "skan": bc(r, B["SKAN"]), "strona": bc(r, B["STR"]),
+                "kto": bc(r, B["KTO"]), "zkim": bc(r, B["ZKIM"]),
+                "temat": bc(r, B["TEMAT"]), "charakter": bc(r, B["CHAR"]),
+                "slowa": bc(r, B["SLOWA"]), "okol": bc(r, B["OKOL"]),
+                "ludzie": [],   # (osoba, stan, zaw, uw, rola, skad)
+            }
+            b1_entries.append(cur)
+        if cur is not None:
+            osoba = bc(r, B["OSOBA"])
+            if osoba or bc(r, B["UW"]) or bc(r, B["ZAW"]):
+                cur["ludzie"].append((osoba, bc(r, B["STAN"]), bc(r, B["ZAW"]),
+                                      bc(r, B["UW"]), bc(r, B["ROLA"]), bc(r, B["SKAD"])))
+    b1.close()
+
+    # numeracja id_wpisu w obrębie dnia (jak w bazie 1724–1736): RRRR-MM-DD_NN
+    _bycount = defaultdict(int)
+    def is_junk(n):
+        n = (n or "").strip()
+        return (not n) or n in ("?", "-", "—") or len(re.sub(r"[^0-9A-Za-zĄąĆćĘꣳŃńÓóŚśŻżŹź]", "", n)) < 3
+
+    # mapowanie roli Baza1 -> spójne role strony
+    def rola_std(rola, osoba_name, kto, zkim):
+        rl = (rola or "").strip().lower()
+        if rl.startswith("pokrzyw"): return "powód / wnoszący"
+        if rl.startswith("oskarż") or rl.startswith("oskarz"): return "pozwany / strona przeciwna"
+        if rl.startswith("apelant"): return "powód / wnoszący"
+        if rl.startswith("świad") or rl.startswith("swiad"): return "osoba wzmiankowana"
+        return "osoba wzmiankowana"
+
+    # agregaty osób z Baza1 (dołączymy do istniejących p_* i idx_osob)
+    b1_rows_count = 0
+    b1_idx = {}  # pnorm -> rekord indeksu osoby budowany z Baza1
+    place_pages = defaultdict(set)   # miejsce (ze 'Skąd?') -> set stron
+    place_count = defaultdict(int)
+
+    for e in b1_entries:
+        _bycount_key = (e["data"],)
+        _bycount[_bycount_key] += 1
+        nn = f"{_bycount[_bycount_key]:02d}"
+        wid = f"{e['data']}_{nn}"
+        # złóż notatkę prawno-opisową (tylko z Dodatkowych okoliczności, jak w bazie głównej)
+        notatka = redaguj_notatke(e)
+        osoby_wpisu = []
+        nazwy_norm = [pnorm(l[0]) for l in e["ludzie"] if l[0] and not is_junk(l[0])]
+        for (osoba, stan, zaw, uw, rola, skad) in e["ludzie"]:
+            if is_junk(osoba):
+                continue
+            b1_rows_count += 1
+            parts = osoba.split()
+            imie = parts[0] if len(parts) > 1 else ""
+            nazwisko = " ".join(parts[1:]) if len(parts) > 1 else osoba
+            rola_s = rola_std(rola, osoba, e["kto"], e["zkim"])
+            uwagi_pola = " · ".join([x for x in (zaw, (("ze " + skad) if skad else ""), uw) if x])
+            osoby_wpisu.append({
+                "imie": imie, "nazwisko": nazwisko, "rola": rola_s,
+                "status": stan, "miejscowosc": skad, "uwagi": uwagi_pola,
+            })
+            # indeks osoby
+            key = pnorm(osoba)
+            rec = b1_idx.setdefault(key, {
+                "osoba": osoba, "strony": set(), "statusy": set(),
+                "zawody": set(), "uwagi": [], "rodzina": [], "okolicznosci": [],
+                "powiazania": defaultdict(lambda: {"ile": 0, "sprawy": []}),
+                "liczba": 0,
+            })
+            if e["strona"]:
+                rec["strony"].add(e["strona"])
+            if stan:
+                rec["statusy"].add(stan)
+            if zaw:
+                rec["zawody"].add(zaw)
+                all_zawody[zaw] += 1
+            if uw:
+                (rec["rodzina"] if RODZINA_RE.search(uw) else rec["uwagi"]).append(uw)
+            if skad:
+                nota = f"pochodzenie: {skad}"
+                if nota not in rec["uwagi"]:
+                    rec["uwagi"].append(nota)
+            if e["okol"]:
+                etyk = (e["temat"] or e["charakter"] or "sprawa") + (f" ({e['data']})" if e["data"] else "")
+                okn = f"{etyk}: {e['okol']}"
+                if okn not in rec["okolicznosci"]:
+                    rec["okolicznosci"].append(okn)
+            rec["liczba"] += 1
+            # powiązania przez wspólną sprawę
+            for inna_name in [l[0] for l in e["ludzie"] if l[0] and not is_junk(l[0])]:
+                if pnorm(inna_name) == key:
+                    continue
+                d = rec["powiazania"][inna_name]
+                d["ile"] += 1
+                spr = (e["temat"] or e["charakter"] or "sprawa") + (f" ({e['data']})" if e["data"] else "")
+                if spr not in d["sprawy"]:
+                    d["sprawy"].append(spr)
+            # miejsce ze 'Skąd?'
+            if skad:
+                place_pages[skad].add(e["strona"])
+                place_count[skad] += 1
+
+        wpisy[wid] = {
+            "id": wid, "skan": e["skan"], "data": e["data"],
+            "typ": e["charakter"], "streszczenie": "",
+            "pewnosc": "wysoka", "zrodlo": "radziecka 1712–1713",
+            "temat": e["temat"], "charakter": e["charakter"],
+            "slowa": e["slowa"], "okol": e["okol"], "notatka": notatka,
+            "kw": split_kw(e["slowa"]), "osoby": osoby_wpisu,
+        }
+        for t in wpisy[wid]["kw"]:
+            kw_counter[t.lower()] += 1
+        if e["charakter"] and e["charakter"] != "-":
+            charaktery_set[e["charakter"]] = charaktery_set.get(e["charakter"], 0) + 1
+        if e["temat"] and e["temat"] != "-":
+            tematy_set[e["temat"]] = tematy_set.get(e["temat"], 0) + 1
+
+    # scalenie indeksu osób Baza1 z istniejącym idx_osob (po pnorm)
+    existing_by_key = {pnorm(o["osoba"]): o for o in idx_osob}
+    for key, rec in b1_idx.items():
+        strony_str = ", ".join(sorted(rec["strony"], key=lambda s: (len(s), s)))
+        pw = [{"osoba": nm, "ile": d["ile"], "sprawy": d["sprawy"][:5]}
+              for nm, d in sorted(rec["powiazania"].items(), key=lambda kv: -kv[1]["ile"])[:25]]
+        if key in existing_by_key:
+            o = existing_by_key[key]  # ta sama osoba też w 1724–1736 — dołóż
+            o["liczba_n"] = (o.get("liczba_n", 0) or 0) + rec["liczba"]
+            o["liczba"] = str(o["liczba_n"])
+            # scal strony
+            old_pages = [p for p in (o.get("strony", "").split(", ")) if p]
+            o["strony"] = ", ".join(old_pages + [p for p in rec["strony"] if p not in old_pages])
+            o["zawody"] = sorted(set(o.get("zawody", [])) | rec["zawody"])
+            o["uwagi"] = (o.get("uwagi", []) + rec["uwagi"])[:12]
+            o["rodzina"] = (o.get("rodzina", []) + rec["rodzina"])[:12]
+            o["okolicznosci"] = (o.get("okolicznosci", []) + rec["okolicznosci"])[:12]
+            o["powiazania"] = (o.get("powiazania", []) + pw)[:30]
+            if rec["statusy"]:
+                st = set(filter(None, (o.get("statusy", "") or "").split(", "))) | rec["statusy"]
+                o["statusy"] = ", ".join(sorted(st))
+        else:
+            idx_osob.append({
+                "osoba": rec["osoba"], "liczba": str(rec["liczba"]),
+                "liczba_n": rec["liczba"], "strony": strony_str,
+                "statusy": ", ".join(sorted(rec["statusy"])),
+                "zawody": sorted(rec["zawody"]), "uwagi": rec["uwagi"][:12],
+                "rodzina": rec["rodzina"][:12], "okolicznosci": rec["okolicznosci"][:12],
+                "powiazania": pw,
+                "_zaw_norm": pnorm(" ".join(sorted(rec["zawody"]))),
+            })
+
+    # scalenie indeksu miejsc (ze 'Skąd?') z istniejącym idx_miejsc
+    existing_place = {pnorm(m["miejsce"]): m for m in idx_miejsc}
+    for miejsce, pages in place_pages.items():
+        k = pnorm(miejsce)
+        pages_str = ", ".join(sorted({p for p in pages if p}, key=lambda s: (len(s), s)))
+        if k in existing_place:
+            m = existing_place[k]
+            old = [p for p in (m.get("strony", "").split(", ")) if p]
+            m["strony"] = ", ".join(old + [p for p in pages if p and p not in old])
+            try:
+                m["liczba"] = str(int(str(m.get("liczba", "0")).strip() or 0) + place_count[miejsce])
+            except ValueError:
+                m["liczba"] = str(place_count[miejsce])
+        else:
+            idx_miejsc.append({"miejsce": miejsce, "liczba": str(place_count[miejsce]),
+                               "strony": pages_str})
+
+    # odśwież listy filtrów po dołączeniu
+    charaktery = sorted(charaktery_set, key=lambda c: (-charaktery_set[c], c.lower()))
+    tematy = sorted(tematy_set, key=lambda t: (-tematy_set[t], t.lower()))
+    kw_canon = {}
+    for w in wpisy.values():
+        for t in w.get("kw", []):
+            lk = t.lower()
+            if lk not in kw_canon:
+                kw_canon[lk] = t
+    slowa_klucze = sorted(kw_canon.values(), key=lambda t: (-kw_counter[t.lower()], t.lower()))
+    zawody_lista = sorted(all_zawody, key=lambda z: (-all_zawody[z], z.lower()))
+    print("Dołączono Baza1 1712–1713:", len(b1_entries), "wpisów,", b1_rows_count, "wierszy osób")
+else:
+    print("UWAGA: nie znaleziono", BAZA1, "— pomijam dołączenie 1712–1713")
 
 wpisy_list = list(wpisy.values())
 # sort wpisów po dacie, potem po id

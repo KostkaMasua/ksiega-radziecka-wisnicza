@@ -132,22 +132,10 @@ KW_SEP = re.compile(r"[,;/]+")
 def split_kw(s):
     return [t.strip() for t in KW_SEP.split(s or "") if t.strip()]
 
-# --- Redakcja notatki prawno-opisowej z pól źródła ---
-# Składamy czytelną prozę WYŁĄCZNIE z danych źródła (nie dopowiadamy faktów):
-# temat + charakter czynności, strony sporu (Kto/Z kim) ze statusem, opis zdarzenia
-# (Dodatkowe okoliczności) oraz wzmianki o osobach, przy których źródło zapisało uwagę
-# „w tej samej linii” (kolumna Uwagi danej osoby).
-STAN_OPIS = {
-    "honestus": "mieszczanin (uczciwy)", "honesta": "mieszczka (uczciwa)",
-    "famatus": "sławetny (rzemieślnik/kupiec)", "famata": "sławetna",
-    "laboriosus": "pracowity (chłop/robotnik)", "laboriosa": "pracowita",
-    "nobilis": "szlachcic", "generosus": "urodzony (szlachcic)",
-    "infidelis": "niewierny (Żyd)", "providus": "opatrzny (mieszczanin)",
-    "spectabilis": "znakomity (rajca)",
-}
-def opis_stanu(st):
-    return STAN_OPIS.get((st or "").strip().lower(), st)
-
+# --- Redakcja notatki prawno-opisowej z pola „Dodatkowe okoliczności” ---
+# Notatka opisowa czerpie treść WYŁĄCZNIE z pola „Dodatkowe okoliczności”.
+# Zdanie wprowadzające składamy z metadanych sprawy (charakter czynności, przedmiot,
+# strony Kto/Z kim) — to nie treść z pola Uwagi, lecz nagłówkowy kontekst sprawy.
 def zdanie(s):
     s = (s or "").strip()
     if not s:
@@ -191,32 +179,9 @@ def redaguj_notatke(src):
         wstep += f". Sprawę wnosi {kto}"
     akapity.append(zdanie(wstep))
 
-    # 2) Opis zdarzenia z „Dodatkowych okoliczności”
+    # 2) Opis zdarzenia z „Dodatkowych okoliczności” — JEDYNE źródło treści opisowej notatki
     if okol:
         akapity.append("Okoliczności sprawy: " + zdanie(okol))
-
-    # 3) Osoby, przy których źródło zapisało uwagę „w tej samej linii”
-    wzmianki = []
-    for (osoba, stan, zaw, uw) in ludzie:
-        osoba = (osoba or "").strip()
-        uw = (uw or "").strip()
-        if not osoba:
-            continue
-        czesci = []
-        if stan:
-            czesci.append(opis_stanu(stan))
-        if zaw:
-            czesci.append(zaw)
-        rola_opis = (", ".join(czesci)) if czesci else ""
-        if uw:
-            # uwaga odnotowana w wierszu tej konkretnej osoby — zaznaczamy to wprost
-            prefix = f"{osoba}"
-            if rola_opis:
-                prefix += f" ({rola_opis})"
-            wzmianki.append(f"przy osobie {prefix} źródło odnotowuje: {zdanie(uw)}")
-    if wzmianki:
-        akapity.append("Wzmianki osobowe — " + " ".join(
-            w[0].upper() + w[1:] for w in wzmianki))
 
     return "\n\n".join(a for a in akapity if a)
 

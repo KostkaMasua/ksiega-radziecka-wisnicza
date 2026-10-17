@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Eksport bazy radzieckiej xlsx -> data.json dla strony GitHub Pages."""
-import openpyxl, json, re, os
+import openpyxl, json, re, os, unicodedata
 from collections import defaultdict
 
 SRC = r"C:\Users\bartl\.kiro\crew\workspace\Baza_Ksiega_radziecka_Wisnicza_1712-1736.xlsx"
@@ -622,6 +622,77 @@ if _os.path.exists(BAZA1):
 else:
     print("UWAGA: nie znaleziono", BAZA1, "— pomijam dołączenie 1712–1713")
 
+# --- Normalizacja diakrytyków nazwisk w zredagowanych notatkach ---
+# AI redagowało z danych źródła, więc część nazwisk zachowała pisownię bez polskich
+# znaków (np. "Sowinski" zamiast "Sowiński"). Budujemy słownik poprawnej pisowni
+# WYŁĄCZNIE z nazw osób występujących w bazie (imie/nazwisko w wpisach + indeks osób),
+# dopasowanie po formie ASCII. Zwykłe słowa nie są ruszane — słownik zawiera tylko
+# tokeny, które gdzieś w źródle mają diakrytyk; podmieniamy tylko jednoznaczne.
+def _strip_diac(s):
+    s = s.replace("ł", "l").replace("Ł", "L")
+    return "".join(c for c in unicodedata.normalize("NFD", s)
+                   if unicodedata.category(c) != "Mn")
+
+_diac_forms = defaultdict(lambda: defaultdict(int))  # ascii_lower -> {forma: licznik}
+def _collect_name(s):
+    for tok in re.split(r"[\s,.;:()„”\"'/–—-]+", s or ""):
+        tok = tok.strip()
+        if not tok or not re.search(r"[A-Za-zĄąĆćĘꣳŃńÓóŚśŻżŹź]", tok):
+            continue
+        _diac_forms[_strip_diac(tok).lower()][tok] += 1
+for _w in wpisy.values():
+    for _o in _w.get("osoby", []):
+        _collect_name(_o.get("imie", "")); _collect_name(_o.get("nazwisko", ""))
+for _o in idx_osob:
+    _collect_name(_o.get("osoba", ""))
+# tylko klucze, dla których istnieje forma z diakrytykiem; weź najczęstszą
+_diac_map = {}
+for _k, _forms in _diac_forms.items():
+    _withd = {f: n for f, n in _forms.items() if _strip_diac(f) != f}
+    if _withd:
+        _diac_map[_k] = max(_withd.items(), key=lambda kv: kv[1])[0]
+
+# Mapa RDZENI nazwisk odmiennych: pozwala poprawić formy fleksyjne (Sowinskiego,
+# Wiewiorskiej, Szempinskich...) których nie ma w mianowniku. Rdzeń = token bez
+# końcówki -ski/-ska/-cki/-cka/-nski... Dla nazwisk na -ski/-cki wspólna część to
+# rdzeń + litera przed 'ski'. Budujemy: rdzen_ascii -> rdzen_z_diakrytykiem.
+_FLEKS = ("ego", "emu", "imi", "ich", "iej", "im", "ym", "ej", "ą", "a", "e", "i", "y", "ów", "om", "ami")
+_rdzen_map = {}
+for _k, _form in _diac_map.items():
+    # interesują nas nazwiska na -ski/-cki/-ska/-cka (odmienne przymiotnikowo)
+    m = re.search(r"(sk|ck)(i|a)$", _k)
+    if m:
+        rdzen_ascii = _k[:m.start()+2]          # ...sk / ...ck
+        rdzen_diac = _form[:len(_form) - (len(_k) - (m.start()+2))]
+        if _strip_diac(rdzen_diac).lower() != rdzen_diac.lower():
+            _rdzen_map[rdzen_ascii] = rdzen_diac
+
+def _popraw_token(tok):
+    """Zwraca poprawioną pisownię tokenu lub None, gdy nic nie zmieniać."""
+    if _strip_diac(tok) != tok:            # już ma diakrytyk
+        return None
+    low = tok.lower()
+    # 1) pełne dopasowanie (mianownik)
+    corr = _diac_map.get(low)
+    if corr and corr.lower() != low:
+        return corr[0].upper() + corr[1:] if tok[0].isupper() else corr
+    # 2) forma odmieniona nazwiska na -sk-/-ck- : dopasuj rdzeń, zachowaj końcówkę
+    m = re.search(r"(sk|ck)", low)
+    if m:
+        for end in range(len(low), m.end()-1, -1):
+            rdzen = low[:end]
+            if rdzen in _rdzen_map and rdzen != _rdzen_map[rdzen].lower():
+                nowy = _rdzen_map[rdzen] + tok[end:]   # rdzeń z diakrytykiem + reszta
+                return nowy[0].upper() + nowy[1:] if tok[0].isupper() else nowy
+    return None
+
+def norm_diakrytyki(txt):
+    def _repl(m):
+        tok = m.group(0)
+        nowy = _popraw_token(tok)
+        return nowy if nowy is not None else tok
+    return re.sub(r"[A-Za-zĄąĆćĘꣳŃńÓóŚśŻżŹź]+", _repl, txt or "")
+
 # --- Zredagowane notatki AI (wersja B): nadpisz nota_okol dla pasujących id ---
 # Plik nota_red.json (id -> zredagowany opis) jest trwałą częścią repo, więc
 # regeneracja z xlsx zachowuje redakcję. Brak pliku = zostają notatki szablonowe.
@@ -632,14 +703,16 @@ if os.path.exists(_RED):
     for _w in wpisy.values():
         k = _w.get("_okol_key", "")
         if k and k in red:
-            _w["nota_okol"] = red[k]
+            _w["nota_okol"] = norm_diakrytyki(red[k])
             _red_applied += 1
     print("Zastosowano zredagowanych notatek AI:", _red_applied, "z", len(red))
 else:
     print("UWAGA: brak nota_red.json — notatki pozostają szablonowe")
-# usuń pole pomocnicze z danych wyjściowych
+# usuń pole pomocnicze z danych wyjściowych; ujednolić diakrytyki także w „Strony”
 for _w in wpisy.values():
     _w.pop("_okol_key", None)
+    if _w.get("nota_strony"):
+        _w["nota_strony"] = norm_diakrytyki(_w["nota_strony"])
 
 # sortowanie osób w każdym wpisie wg roli: powód → pozwany → wzmiankowani
 def _rola_rank(rola):

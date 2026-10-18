@@ -36,7 +36,16 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45}
-.wrap{max-width:780px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+.wrap{max-width:1360px;margin:0 auto;padding-inline:clamp(16px,3vw,40px);padding-block:24px 56px;display:flex;flex-direction:column;gap:18px}
+/* Układ desktopowy: od 980px nagłówek u góry, a niżej dwie kolumny — panel
+   wyszukiwania (lepki) po lewej i wyniki po prawej. Poniżej 980px wszystko w jednej
+   szpalcie (zachowanie mobilne). Szerokość i siatka kart dostosowują się do ekranu. */
+.layout{display:flex;flex-direction:column;gap:18px}
+@media (min-width:980px){
+  .layout{display:grid;grid-template-columns:clamp(300px,26vw,360px) minmax(0,1fr);align-items:start;gap:28px}
+  .layout>form.search{position:sticky;top:20px}
+  .results{min-width:0}
+}
 header .over{font-family:var(--f-head);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stamp)}
 h1{font-family:var(--f-head);font-weight:700;font-size:32px;line-height:1.05;letter-spacing:.02em;text-transform:uppercase;margin:4px 0 6px;text-wrap:balance}
 header{display:flex;flex-direction:column;gap:8px}
@@ -63,6 +72,13 @@ input:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible,s
 .check input{width:18px;height:18px;accent-color:var(--stamp)}
 .count{font-family:var(--f-head);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 #list{display:flex;flex-direction:column;gap:10px}
+/* Na szerokich ekranach wyniki układają się w responsywną siatkę kart —
+   tyle kolumn, ile zmieści się przy min. ~380px na kartę. Model B (osoby) jest
+   zwięzły, więc gęściej (min. ~300px). Siatka zależy od szerokości panelu wyników. */
+@media (min-width:980px){
+  #list.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:14px;align-items:start}
+  #list.grid.osoby{grid-template-columns:repeat(auto-fill,minmax(300px,1fr))}
+}
 .rec{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px;display:flex;flex-direction:column;gap:10px}
 .top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
 .name{font-family:var(--f-head);font-size:20px;font-weight:700;letter-spacing:.01em;line-height:1.15;min-width:0;overflow-wrap:anywhere}
@@ -88,6 +104,14 @@ summary{cursor:pointer;font-family:var(--f-head);font-weight:600;font-size:13px;
 .role{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--stamp-soft);color:var(--stamp)}
 .role.pow{background:transparent;border:1px solid var(--ok);color:var(--ok)}
 .role.poz{background:transparent;border:1px solid var(--low);color:var(--low)}
+.role.swi{background:transparent;border:1px solid var(--civ);color:var(--civ)}
+.role.ape{background:transparent;border:1px solid var(--mid);color:var(--mid)}
+/* klikalne nazwisko osoby na karcie wpisu — przenosi do profilu osoby (Model B) */
+button.personlink{font:inherit;font-family:var(--f-head);font-weight:700;font-size:15px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer;text-align:left}
+button.personlink span{font-weight:500;color:var(--stamp)}
+button.personlink:hover{text-decoration:underline}
+.pcta{font-family:var(--f-head);font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .12s}
+.person:hover .pcta{opacity:1}
 .pmeta{color:var(--muted);font-size:13px}
 blockquote{margin:10px 0 0;font-family:var(--f-src);font-size:16px;line-height:1.55;max-width:66ch}
 blockquote p{margin:0 0 8px}
@@ -149,6 +173,7 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
     </div>
   </header>
 
+  <div class="layout">
   <form class="search" id="f" autocomplete="off">
     <!-- Pola wspólne / zależne od widoku -->
     <div class="fields">
@@ -200,9 +225,12 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
     <div class="row"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
   </form>
 
+  <div class="results">
   <div class="count"><span id="cnt"></span></div>
   <div id="list"></div>
   <button type="button" id="more" class="morebtn" hidden></button>
+  </div>
+  </div>
 
   <footer>
     <p><strong>Źródło:</strong> zindeksowana księga radziecka miasta Nowy Wiśnicz 1712–1736. Treść streszczeń oddaje zapis źródła; nazwy osobowe zachowują oryginalną (łacińsko-polską) pisownię, dlatego ta sama osoba może pojawiać się w wariantach fleksyjnych (np. Adalbertus / Adalberti).</p>
@@ -292,9 +320,16 @@ function cardWpis(w0){
   const osoby=(w0.osoby||[]);
   const pHtml=osoby.map(o=>{
     const r=norm(o.rola);
-    const cls=r.includes("powod")||r.includes("wnosz")?"pow":(r.includes("pozwan")||r.includes("przeciw")?"poz":"");
+    let cls="";
+    if(r.includes("powod")||r.includes("wnosz")||r.includes("pokrzyw"))cls="pow";
+    else if(r.includes("pozwan")||r.includes("przeciw")||r.includes("oskarz"))cls="poz";
+    else if(r.includes("swiad"))cls="swi";
+    else if(r.includes("apelant"))cls="ape";
     const meta=[o.status,o.miejscowosc,o.uwagi].filter(x=>x&&x!=="—").map(esc).join(" · ");
-    return `<div class="person"><span class="role ${cls}">${esc(o.rola||"osoba")}</span><span class="pn">${esc(o.nazwisko)} <span>${esc(o.imie&&o.imie!=="—"?o.imie:"")}</span></span>${meta?`<span class="pmeta">${meta}</span>`:""}</div>`;
+    // pełna nazwa do wyszukania w indeksie osób (Model B): "Imię Nazwisko" lub samo nazwisko
+    const pelna=[o.imie&&o.imie!=="—"?o.imie:"",o.nazwisko].filter(Boolean).join(" ").trim();
+    const imieHtml=o.imie&&o.imie!=="—"?` <span>${esc(o.imie)}</span>`:"";
+    return `<div class="person"><span class="role ${cls}">${esc(o.rola||"osoba")}</span><button type="button" class="personlink" data-osoba="${esc(pelna)}" title="Przejdź do profilu osoby (Model B)">${esc(o.nazwisko)}${imieHtml}</button>${meta?`<span class="pmeta">${meta}</span>`:""}<span class="pcta">profil →</span></div>`;
   }).join("");
   return `<article class="rec" id="${esc(w0.id)}">
     <div class="top"><div class="name">${esc(w0.temat||w0.charakter||"Wpis")}</div><div class="born">${dataOpis(w0.data)}</div></div>
@@ -404,6 +439,7 @@ function draw(keep){
   $("more").hidden=rest<=0;
   $("more").textContent=`Więcej · kolejne ${Math.min(step,rest)} z ${rest}`;
   const render=A?cardWpis:cardOsoba;
+  $("list").className="grid"+(A?"":" osoby");
   $("list").innerHTML=n?out.slice(0,vis).map(render).join(""):`<div class="empty">Brak wyników dla tych kryteriów. Skróć nazwisko do początku albo wyczyść filtry.</div>`;
 }
 
@@ -415,14 +451,25 @@ $("sortd").addEventListener("change",go);
 $("perpage").addEventListener("change",go);
 $("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
 $("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
-// kliknięcia na kartach: hasło (A), zawód/osoba-powiązana (B)
+// przejście do profilu osoby w Modelu B: przełącz widok, wyczyść filtry, wyszukaj po nazwie
+function gotoOsoba(nazwa){
+  if(VIEW!=="B")setView("B");
+  ["qi","qm","qk","qz"].forEach(id=>$(id).value="");
+  $("zawsel").value="";
+  $("qn").value=nazwa||"";
+  draw();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+// kliknięcia na kartach: hasło (A), osoba→profil B (A), zawód/osoba-powiązana (B)
 $("list").addEventListener("click",e=>{
   const kb=e.target.closest(".kwchip");
   if(kb){$("qk").value=kb.dataset.kw;$("kwsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  const pl=e.target.closest(".personlink");
+  if(pl){gotoOsoba(pl.dataset.osoba);return;}
   const zb=e.target.closest(".zawchip");
   if(zb){$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
   const rn=e.target.closest(".relname");
-  if(rn){["qi","qm","qk","qz"].forEach(id=>$(id).value="");$("zawsel").value="";$("qn").value=rn.dataset.osoba;draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(rn){gotoOsoba(rn.dataset.osoba);return;}
 });
 $("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());

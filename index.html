@@ -159,6 +159,13 @@ button.relname{font:inherit;font-family:var(--f-head);font-weight:700;font-size:
 button.relname:hover{text-decoration:underline}
 .relc{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .relspr{color:var(--muted);font-size:12.5px}
+/* klikalna etykieta sprawy w powiązaniach osoby — prowadzi do karty wpisu */
+button.caselink{font:inherit;font-family:var(--f-src);font-size:12.5px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer}
+button.caselink:hover{text-decoration:underline}
+/* chwilowe podświetlenie karty wpisu, do której przeniesiono z profilu osoby */
+.rec.highlight{outline:2px solid var(--stamp);outline-offset:2px;animation:recpulse 1.8s ease-out}
+@keyframes recpulse{0%{background:var(--stamp-soft)}100%{background:var(--surface)}}
+@media (prefers-reduced-motion:reduce){.rec.highlight{animation:none}}
 footer{border-top:1px solid var(--line);padding:16px clamp(16px,3vw,44px) 40px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
 footer p{margin:0;max-width:92ch}
 mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
@@ -475,7 +482,7 @@ function cardOsoba(o){
   const stHtml=statusy.length?`<div class="relrow soc"><span class="rellbl">🏛 Powiązania społeczne (status stanowy)</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
   const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Inne notatki źródła (pochodzenie, okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
   const okolHtml=okol.length?`<div class="relrow extra"><span class="rellbl">📝 Dodatkowe okoliczności spraw (${okol.length})</span><ul class="uwlist">${okol.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
-  const relHtml=pow.length?`<div class="relrow cases"><span class="rellbl">⚖ Powiązania przez wspólne sprawy (${pow.length}) — współwystępowanie, nie pokrewieństwo</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>esc(s)).join(" · ")}</div></div>`).join("")}</div></div>`:"";
+  const relHtml=pow.length?`<div class="relrow cases"><span class="rellbl">⚖ Powiązania przez wspólne sprawy (${pow.length}) — współwystępowanie, nie pokrewieństwo</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>{const lab=(s&&typeof s==="object")?s.label:s; const sid=(s&&typeof s==="object")?s.id:""; return sid?`<button type="button" class="caselink" data-wpis="${esc(sid)}" title="Przejdź do karty sprawy">${esc(lab)} →</button>`:esc(lab);}).join(" · ")}</div></div>`).join("")}</div></div>`:"";
   const hasRel=rodzHtml||zawHtml||stHtml||uwHtml||okolHtml||relHtml;
   const nm=rozbijNazwe(o.osoba);
   const nameHtml=nm.imie?`${esc(nm.nazwisko)} <span>${esc(nm.imie)}</span>`:esc(nm.nazwisko);
@@ -586,6 +593,30 @@ function gotoOsoba(nazwa){
   draw();
   window.scrollTo(0,0);
 }
+// przejście do KARTY SPRAWY (Model A) po id wpisu — zapamiętuje stan dla przycisku Wstecz
+function gotoWpis(wid){
+  HIST.push(snapshot());
+  updateBack();
+  if(VIEW!=="A")setView("A");
+  // wyczyść filtry, by wpis na pewno był na liście, i pokaż dość rekordów
+  ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).value="");
+  ["temat","char","pew","zrodlo","stat","rokod","rokdo","kwsel","zawsel"].forEach(id=>$(id).value="");
+  ["qt","multi","hasfam","haszaw"].forEach(id=>$(id).checked=false);
+  // znajdź pozycję wpisu w posortowanej liście i załaduj tyle rekordów, by był widoczny
+  const lista=filterWpisy();
+  const poz=lista.findIndex(w=>w.id===wid);
+  lim = poz>=0 ? Math.max(pageStep(), poz+1) : pageStep();
+  draw(true);
+  // przewiń do karty i podświetl ją na chwilę
+  requestAnimationFrame(()=>{
+    const el=document.getElementById(wid);
+    if(el){
+      el.scrollIntoView({block:"center"});
+      el.classList.add("highlight");
+      setTimeout(()=>el.classList.remove("highlight"),1800);
+    }else{window.scrollTo(0,0);}
+  });
+}
 $("back").addEventListener("click",()=>{
   if(!HIST.length)return;
   const s=HIST.pop();
@@ -602,6 +633,8 @@ $("list").addEventListener("click",e=>{
   if(zb){HIST.push(snapshot());updateBack();$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo(0,0);return;}
   const rn=e.target.closest(".relname");
   if(rn){gotoOsoba(rn.dataset.osoba);return;}
+  const cl=e.target.closest(".caselink");
+  if(cl){gotoWpis(cl.dataset.wpis);return;}
 });
 $("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());

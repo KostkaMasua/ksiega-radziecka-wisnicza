@@ -259,6 +259,7 @@ kw_counter = defaultdict(int)
 matched = 0
 charaktery_set = {}
 tematy_set = {}
+orig_to_wid = {}   # id(obiektu orig_entry) -> wid, by powiązania mogły nieść id wpisu
 # iterujemy w tej samej kolejności, w jakiej wpisy były dodawane (= kolejność źródła)
 for wid, w in wpisy.items():
     key = (w["data"], str(w["skan"]))
@@ -268,6 +269,7 @@ for wid, w in wpisy.items():
     i = used[key]
     if i < len(lst):
         src = lst[i]
+        orig_to_wid[id(src)] = wid
         used[key] += 1
         slowa, temat, okol = src["slowa"], src["temat"], src["okol"]
         char = src.get("charakter", "")
@@ -367,8 +369,9 @@ for e in orig_entries:
             d = p_rel[key].setdefault(inna, {"ile":0, "sprawy":[]})
             d["ile"] += 1
             spr = (e["temat"] or e["charakter"] or "sprawa") + (f" ({e['data']})" if e['data'] else "")
-            if spr not in d["sprawy"]:
-                d["sprawy"].append(spr)
+            spr_id = orig_to_wid.get(id(e), "")   # id wpisu, by klik prowadził do konkretnej karty
+            if not any(s.get("label")==spr for s in d["sprawy"]):
+                d["sprawy"].append({"label": spr, "id": spr_id})
 
 # dołóż dane do indeksu osób (dopasowanie po znormalizowanej nazwie)
 rel_hits = 0
@@ -535,8 +538,8 @@ if _os.path.exists(BAZA1):
                 d = rec["powiazania"][inna_name]
                 d["ile"] += 1
                 spr = (e["temat"] or e["charakter"] or "sprawa") + (f" ({e['data']})" if e["data"] else "")
-                if spr not in d["sprawy"]:
-                    d["sprawy"].append(spr)
+                if not any(s.get("label")==spr for s in d["sprawy"]):
+                    d["sprawy"].append({"label": spr, "id": wid})
             # miejsce ze 'Skąd?'
             if skad:
                 place_pages[skad].add(e["strona"])

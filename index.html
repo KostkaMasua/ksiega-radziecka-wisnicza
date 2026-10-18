@@ -162,6 +162,11 @@ button.relname:hover{text-decoration:underline}
 /* klikalna etykieta sprawy w powiązaniach osoby — prowadzi do karty wpisu */
 button.caselink{font:inherit;font-family:var(--f-src);font-size:12.5px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer}
 button.caselink:hover{text-decoration:underline}
+/* baner „Wróć do profilu osoby” nad wynikami Modelu A */
+.backosoba{margin-bottom:12px}
+button.backosobabtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--surface);background:var(--stamp);border:0;border-radius:4px;padding:10px 14px;cursor:pointer;width:100%;text-align:left}
+button.backosobabtn strong{font-weight:700;text-transform:none;letter-spacing:0}
+button.backosobabtn:hover{filter:brightness(1.08)}
 /* chwilowe podświetlenie karty wpisu, do której przeniesiono z profilu osoby */
 .rec.highlight{outline:2px solid var(--stamp);outline-offset:2px;animation:recpulse 1.8s ease-out}
 @keyframes recpulse{0%{background:var(--stamp-soft)}100%{background:var(--surface)}}
@@ -263,6 +268,7 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
     </form>
 
     <div class="results">
+      <div id="backosoba" class="backosoba" hidden></div>
       <div class="count"><span id="cnt"></span></div>
       <div id="list"></div>
       <button type="button" id="more" class="morebtn" hidden></button>
@@ -296,6 +302,7 @@ function skanUrl(skan){
 }
 
 let D=null, VIEW=null, lim=DEFSTEP;
+let BACK_OSOBA=null;   // gdy na kartę sprawy weszliśmy z profilu osoby — nazwa tej osoby (baner powrotu)
 // historia nawigacji dla przycisku Wstecz — zapamiętuje stan filtrów/widoku
 let HIST=[];
 
@@ -569,10 +576,18 @@ function draw(keep){
   $("more").hidden=rest<=0;
   $("more").textContent=`Więcej · kolejne ${Math.min(step,rest)} z ${rest}`;
   const render=A?cardWpis:cardOsoba;
+  // baner powrotu do profilu osoby — tylko w Modelu A, gdy weszliśmy z profilu konkretnej osoby
+  const bo=$("backosoba");
+  if(A && BACK_OSOBA){
+    bo.hidden=false;
+    bo.innerHTML=`<button type="button" id="backosobaBtn" class="backosobabtn">← Wróć do profilu osoby: <strong>${esc(BACK_OSOBA)}</strong></button>`;
+  }else{
+    bo.hidden=true; bo.innerHTML="";
+  }
   $("list").innerHTML=n?out.slice(0,vis).map(render).join(""):`<div class="empty">Brak wyników dla tych kryteriów. Skróć nazwisko do początku albo wyczyść filtry.</div>`;
 }
 
-function go(){draw();}
+function go(){BACK_OSOBA=null;draw();}
 ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).addEventListener("input",go));
 ["temat","char","pew","qt","zrodlo","stat","rokod","rokdo","multi","hasfam","haszaw"].forEach(id=>$(id).addEventListener("change",go));
 $("sortb").addEventListener("change",go);
@@ -593,10 +608,12 @@ function gotoOsoba(nazwa){
   draw();
   window.scrollTo(0,0);
 }
-// przejście do KARTY SPRAWY (Model A) po id wpisu — zapamiętuje stan dla przycisku Wstecz
-function gotoWpis(wid){
+// przejście do KARTY SPRAWY (Model A) po id wpisu — zapamiętuje stan dla przycisku Wstecz.
+// `zOsoby` to nazwa osoby, z której profilu przyszliśmy — pokazujemy wtedy baner powrotu.
+function gotoWpis(wid, zOsoby){
   HIST.push(snapshot());
   updateBack();
+  BACK_OSOBA = zOsoby || null;   // kontekst: do którego profilu osoby można wrócić
   if(VIEW!=="A")setView("A");
   // wyczyść filtry, by wpis na pewno był na liście, i pokaż dość rekordów
   ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).value="");
@@ -621,7 +638,16 @@ $("back").addEventListener("click",()=>{
   if(!HIST.length)return;
   const s=HIST.pop();
   updateBack();
+  BACK_OSOBA=null;   // powrót przez Wstecz kasuje kontekst banera
   restore(s);   // restore sam przywraca pozycję przewinięcia zapamiętaną w migawce
+});
+// baner „Wróć do profilu osoby” — delegowany, bo przycisk jest renderowany dynamicznie
+$("backosoba").addEventListener("click",e=>{
+  if(e.target.closest("#backosobaBtn") && BACK_OSOBA){
+    const nazwa=BACK_OSOBA;
+    BACK_OSOBA=null;
+    gotoOsoba(nazwa);
+  }
 });
 
 $("list").addEventListener("click",e=>{
@@ -634,15 +660,20 @@ $("list").addEventListener("click",e=>{
   const rn=e.target.closest(".relname");
   if(rn){gotoOsoba(rn.dataset.osoba);return;}
   const cl=e.target.closest(".caselink");
-  if(cl){gotoWpis(cl.dataset.wpis);return;}
+  if(cl){
+    // nazwa osoby, z której profilu klikamy — z pola wyszukiwania (w Modelu B to profil tej osoby)
+    const zOsoby=VIEW==="B"?($("qn").value||"").trim():"";
+    gotoWpis(cl.dataset.wpis, zOsoby);
+    return;
+  }
 });
 $("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
 $("f").addEventListener("submit",e=>e.preventDefault());
 // wybór modelu z sekcji startowej i z mini-przełącznika w panelu
-$("vA").addEventListener("click",()=>{setView("A");draw();});
-$("vB").addEventListener("click",()=>{setView("B");draw();});
-$("mvA").addEventListener("click",()=>{setView("A");draw();});
-$("mvB").addEventListener("click",()=>{setView("B");draw();});
+$("vA").addEventListener("click",()=>{BACK_OSOBA=null;setView("A");draw();});
+$("vB").addEventListener("click",()=>{BACK_OSOBA=null;setView("B");draw();});
+$("mvA").addEventListener("click",()=>{BACK_OSOBA=null;setView("A");draw();});
+$("mvB").addEventListener("click",()=>{BACK_OSOBA=null;setView("B");draw();});
 $("clr").addEventListener("click",()=>{
   ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).value="");
   ["temat","char","pew","zrodlo","stat","rokod","rokdo","kwsel","zawsel"].forEach(id=>$(id).value="");

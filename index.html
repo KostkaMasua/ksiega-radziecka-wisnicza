@@ -67,14 +67,18 @@ details.about>summary{cursor:pointer;font-family:var(--f-head);font-weight:600;f
 @media (min-width:860px){
   .app.active{grid-template-columns:200px minmax(0,1fr);align-items:start}
 }
-/* panel filtrów — przy lewej krawędzi ekranu, przewija się z treścią (nie lepki) */
+/* panel filtrów — przy lewej krawędzi ekranu; na szerokich ekranach LEPKI (przesuwa się
+   razem z przewijaniem, zostaje widoczny), z własnym scrollem gdy jest wyższy niż ekran */
 .search{background:var(--surface);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
   padding:14px clamp(12px,1.4vw,18px);display:flex;flex-direction:column;gap:7px}
 @media (max-width:859px){.search{border-right:0}}
+@media (min-width:860px){
+  .search{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto}
+}
 .search .vswmini{display:flex;border:1px solid var(--stamp);border-radius:999px;overflow:hidden;margin-bottom:6px}
 .search .vswmini button{flex:1;font:inherit;font-family:var(--f-head);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;background:transparent;color:var(--stamp);border:0;padding:8px 4px;cursor:pointer}
 .search .vswmini button[aria-pressed="true"]{background:var(--stamp);color:var(--surface)}
-.backbtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--stamp);background:transparent;border:1px solid var(--stamp);border-radius:4px;padding:8px;cursor:pointer;margin-bottom:4px}
+.backbtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--stamp);background:transparent;border:1px solid var(--stamp);border-radius:4px;padding:8px;cursor:pointer;margin-top:8px}
 .backbtn:disabled{opacity:.4;cursor:default}
 .grp{font-family:var(--f-head);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--stamp);font-weight:700;margin:8px 0 1px;opacity:.9}
 label{display:flex;flex-direction:column;gap:3px;font-family:var(--f-head);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
@@ -202,7 +206,6 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
   <!-- APLIKACJA: panel filtrów (lewa krawędź) + wyniki (reszta szerokości) -->
   <div class="app" id="app">
     <form class="search" id="f" autocomplete="off">
-      <button type="button" id="back" class="backbtn" disabled>← Wstecz</button>
       <div class="vswmini" role="group" aria-label="Zmień widok">
         <button type="button" id="mvA" aria-pressed="true">Wpisy A</button>
         <button type="button" id="mvB" aria-pressed="false">Osoby B</button>
@@ -265,6 +268,7 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
       </select></label>
 
       <div class="clrrow"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
+      <button type="button" id="back" class="backbtn" disabled>← Wstecz</button>
     </form>
 
     <div class="results">

@@ -105,6 +105,9 @@ dd{margin:0;overflow-wrap:anywhere}
 .tag{font-family:var(--f-head);font-size:12px;font-weight:600;letter-spacing:.05em;background:var(--stamp-soft);color:var(--stamp);border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
 .tag.typ{background:transparent;border:1px solid var(--stamp)}
 .tag.zr{background:transparent;border:1px solid var(--line);color:var(--muted)}
+/* link do skanu w Skanotece — klikalny tag z akcentem */
+a.tag.skanlink{background:var(--stamp);color:var(--surface);text-decoration:none;border:1px solid var(--stamp);cursor:pointer}
+a.tag.skanlink:hover{filter:brightness(1.1);text-decoration:none}
 .tag.pew-wysoka{background:transparent;color:var(--ok);border:1px solid var(--ok)}
 .tag.pew-średnia{background:transparent;color:var(--mid);border:1px solid var(--mid)}
 .tag.pew-niska{background:transparent;color:var(--low);border:1px solid var(--low)}
@@ -274,6 +277,17 @@ const RMIES=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
 function dataOpis(d){const m=/^(\d{4})-(\d{2}|\?\?|\[\?\])?-?(\d{2}|\?\?|\[\?\])?/.exec(d||"");if(!m)return d||"";
   const y=m[1],mo=m[2],dd=m[3];let s=y;if(mo&&/^\d+$/.test(mo))s=(RMIES[+mo]||mo)+" "+y;if(dd&&/^\d+$/.test(dd))s=(+dd)+" "+(RMIES[+mo]||"")+" "+y;return s.replace(/\s+/g," ").trim();}
 
+// Link do skanu w Skanotece Genealodzy.pl (Zespół 118, Jednostka 4 „Księga radziecka Wiśnicza”).
+// Numer skanu z bazy = nazwa pliku na skanotece (NNN.JPG, zera wiodące). Jednostka ma 509 skanów,
+// więc numery >509 (część księgi 1724–1736) nie mają tam odpowiednika — wtedy brak linku.
+const SKAN_BASE="https://skanoteka.genealodzy.pl/index.php?op=pg&id=3201&se=1&sy=4&plik=";
+const SKAN_MAX=509;
+function skanUrl(skan){
+  const n=parseInt(String(skan||"").trim(),10);
+  if(!n || n<1 || n>SKAN_MAX) return null;
+  return SKAN_BASE + String(n).padStart(3,"0") + ".JPG";
+}
+
 let D=null, VIEW=null, lim=DEFSTEP;
 // historia nawigacji dla przycisku Wstecz — zapamiętuje stan filtrów/widoku
 let HIST=[];
@@ -420,7 +434,7 @@ function cardWpis(w0){
     <div class="top"><div class="name">${esc(w0.temat||w0.charakter||"Wpis")}</div><div class="born">${dataOpis(w0.data)}</div></div>
     <div class="ref">
       ${w0.charakter?`<span class="tag typ">${esc(w0.charakter)}</span>`:`<span class="tag typ">wpis</span>`}
-      <span class="tag">skan ${esc(w0.skan)}</span>
+      ${(()=>{const u=skanUrl(w0.skan);return u?`<a class="tag skanlink" href="${u}" target="_blank" rel="noopener" title="Zobacz skan ${esc(w0.skan)} w Skanotece Genealodzy.pl">skan ${esc(w0.skan)} ↗</a>`:`<span class="tag" title="Ten skan jest poza zakresem zdigitalizowanej jednostki (1–509)">skan ${esc(w0.skan)}</span>`;})()}
       ${pew?`<span class="tag pew-${esc(pew)}">odczyt: ${esc(pew)}</span>`:""}
       <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
       ${zr}

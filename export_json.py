@@ -462,13 +462,15 @@ if _os.path.exists(BAZA1):
         n = (n or "").strip()
         return (not n) or n in ("?", "-", "—") or len(re.sub(r"[^0-9A-Za-zĄąĆćĘꣳŃńÓóŚśŻżŹź]", "", n)) < 3
 
-    # mapowanie roli Baza1 -> spójne role strony
+    # mapowanie roli Baza1 -> czytelne role strony, ZACHOWUJĄC rozróżnienie ze źródła
+    # (Baza1 ma jawną kolumnę Rola: Pokrzywdzony/a, Oskarżony/a, Świadek, Apelant).
+    # Świadka i apelanta zostawiamy jako osobne role, nie spłaszczamy do „wzmiankowana”.
     def rola_std(rola, osoba_name, kto, zkim):
         rl = (rola or "").strip().lower()
-        if rl.startswith("pokrzyw"): return "powód / wnoszący"
-        if rl.startswith("oskarż") or rl.startswith("oskarz"): return "pozwany / strona przeciwna"
-        if rl.startswith("apelant"): return "powód / wnoszący"
-        if rl.startswith("świad") or rl.startswith("swiad"): return "osoba wzmiankowana"
+        if rl.startswith("pokrzyw"): return "powód / pokrzywdzony"
+        if rl.startswith("oskarż") or rl.startswith("oskarz"): return "pozwany / oskarżony"
+        if rl.startswith("apelant"): return "apelant"
+        if rl.startswith("świad") or rl.startswith("swiad"): return "świadek"
         return "osoba wzmiankowana"
 
     # agregaty osób z Baza1 (dołączymy do istniejących p_* i idx_osob)
@@ -714,14 +716,19 @@ for _w in wpisy.values():
     if _w.get("nota_strony"):
         _w["nota_strony"] = norm_diakrytyki(_w["nota_strony"])
 
-# sortowanie osób w każdym wpisie wg roli: powód → pozwany → wzmiankowani
+# sortowanie osób w każdym wpisie wg roli:
+# powód/pokrzywdzony → pozwany/oskarżony → apelant → świadek → wzmiankowani
 def _rola_rank(rola):
     r = (rola or "").lower()
-    if "powod" in r or "wnosz" in r:
+    if "powod" in r or "wnosz" in r or "pokrzyw" in r:
         return 0
-    if "pozwan" in r or "przeciw" in r:
+    if "pozwan" in r or "przeciw" in r or "oskarż" in r or "oskarz" in r:
         return 1
-    return 2
+    if "apelant" in r:
+        return 2
+    if "świad" in r or "swiad" in r:
+        return 3
+    return 4
 for _w in wpisy.values():
     if _w.get("osoby"):
         _w["osoby"].sort(key=lambda o: _rola_rank(o.get("rola", "")))
@@ -732,7 +739,10 @@ wpisy_list.sort(key=lambda w: (w["data"], w["id"]))
 
 lata = sorted({w["data"][:4] for w in wpisy_list if w["data"][:4].isdigit()})
 typy = sorted({w["typ"] for w in wpisy_list if w["typ"]})
-role = sorted({o["rola"] for o in osoby_all if o["rola"]})
+# role do filtra: faktyczne role osób we WSZYSTKICH wpisach (Baza1 wnosi świadka/apelanta),
+# posortowane wg rangi procesowej (powód → pozwany → apelant → świadek → wzmiankowana)
+role = sorted({o["rola"] for w in wpisy_list for o in w.get("osoby", []) if o.get("rola")},
+              key=lambda r: (_rola_rank(r), r.lower()))
 
 out = {
     "zrodlo": "Księga radziecka Wiśnicza 1712–1736",

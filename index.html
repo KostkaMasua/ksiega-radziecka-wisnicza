@@ -284,7 +284,8 @@ function snapshot(){
     stat:$("stat").value,temat:$("temat").value,char:$("char").value,qk:$("qk").value,kwsel:$("kwsel").value,
     zrodlo:$("zrodlo").value,rokod:$("rokod").value,rokdo:$("rokdo").value,qskan:$("qskan").value,pew:$("pew").value,
     multi:$("multi").checked,qt:$("qt").checked,qstrona:$("qstrona").value,minw:$("minw").value,
-    hasfam:$("hasfam").checked,haszaw:$("haszaw").checked,sortd:$("sortd").value,sortb:$("sortb").value,perpage:$("perpage").value};
+    hasfam:$("hasfam").checked,haszaw:$("haszaw").checked,sortd:$("sortd").value,sortb:$("sortb").value,perpage:$("perpage").value,
+    lim:lim, scrollY:window.scrollY};   // ile wyników było załadowanych + pozycja przewinięcia
 }
 function restore(s){
   setView(s.VIEW,true);
@@ -293,7 +294,18 @@ function restore(s){
   $("zrodlo").value=s.zrodlo;$("rokod").value=s.rokod;$("rokdo").value=s.rokdo;$("qskan").value=s.qskan;$("pew").value=s.pew;
   $("multi").checked=s.multi;$("qt").checked=s.qt;$("qstrona").value=s.qstrona;$("minw").value=s.minw;
   $("hasfam").checked=s.hasfam;$("haszaw").checked=s.haszaw;$("sortd").value=s.sortd;$("sortb").value=s.sortb;$("perpage").value=s.perpage;
-  draw();
+  lim=s.lim||pageStep();           // odtwórz liczbę załadowanych wyników (np. po „Więcej”)
+  draw(true);                      // keep=true — nie resetuj lim do pierwszej strony
+  // Przywróć pozycję przewinięcia odpornie na późny re-layout: ponawiaj scroll aż
+  // dokument urośnie na tyle, by osiągnąć cel i pozycja się ustali (budżet ~1.2 s).
+  const targetY=s.scrollY||0;
+  const t0=performance.now();
+  (function restoreScroll(){
+    window.scrollTo(0,targetY);
+    const reached=Math.abs(window.scrollY-targetY)<=2;
+    const tall=document.body.scrollHeight-window.innerHeight>=targetY;
+    if((!reached||!tall) && performance.now()-t0<1200){requestAnimationFrame(restoreScroll);}
+  })();
 }
 function updateBack(){$("back").disabled=HIST.length===0;}
 
@@ -558,23 +570,22 @@ function gotoOsoba(nazwa){
   $("hasfam").checked=false;$("haszaw").checked=false;
   $("qn").value=nazwa||"";
   draw();
-  window.scrollTo({top:0,behavior:"smooth"});
+  window.scrollTo(0,0);
 }
 $("back").addEventListener("click",()=>{
   if(!HIST.length)return;
   const s=HIST.pop();
   updateBack();
-  restore(s);
-  window.scrollTo({top:0,behavior:"smooth"});
+  restore(s);   // restore sam przywraca pozycję przewinięcia zapamiętaną w migawce
 });
 
 $("list").addEventListener("click",e=>{
   const kb=e.target.closest(".kwchip");
-  if(kb){HIST.push(snapshot());updateBack();$("qk").value=kb.dataset.kw;$("kwsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(kb){HIST.push(snapshot());updateBack();$("qk").value=kb.dataset.kw;$("kwsel").value="";draw();window.scrollTo(0,0);return;}
   const pl=e.target.closest(".personlink");
   if(pl){gotoOsoba(pl.dataset.osoba);return;}
   const zb=e.target.closest(".zawchip");
-  if(zb){HIST.push(snapshot());updateBack();$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo({top:0,behavior:"smooth"});return;}
+  if(zb){HIST.push(snapshot());updateBack();$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo(0,0);return;}
   const rn=e.target.closest(".relname");
   if(rn){gotoOsoba(rn.dataset.osoba);return;}
 });

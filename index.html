@@ -278,10 +278,10 @@ function dataOpis(d){const m=/^(\d{4})-(\d{2}|\?\?|\[\?\])?-?(\d{2}|\?\?|\[\?\])
   const y=m[1],mo=m[2],dd=m[3];let s=y;if(mo&&/^\d+$/.test(mo))s=(RMIES[+mo]||mo)+" "+y;if(dd&&/^\d+$/.test(dd))s=(+dd)+" "+(RMIES[+mo]||"")+" "+y;return s.replace(/\s+/g," ").trim();}
 
 // Link do skanu w Skanotece Genealodzy.pl (Zespół 118, Jednostka 4 „Księga radziecka Wiśnicza”).
-// Numer skanu z bazy = nazwa pliku na skanotece (NNN.JPG, zera wiodące). Jednostka ma 509 skanów,
-// więc numery >509 (część księgi 1724–1736) nie mają tam odpowiednika — wtedy brak linku.
+// Numer skanu z bazy = nazwa pliku na skanotece (NNN.JPG, zera wiodące). Jednostka ma 568 skanów
+// (001–568), a najwyższy skan w bazie to 556 — więc wszystkie wpisy mają odpowiednik na skanotece.
 const SKAN_BASE="https://skanoteka.genealodzy.pl/index.php?op=pg&id=3201&se=1&sy=4&plik=";
-const SKAN_MAX=509;
+const SKAN_MAX=568;
 function skanUrl(skan){
   const n=parseInt(String(skan||"").trim(),10);
   if(!n || n<1 || n>SKAN_MAX) return null;

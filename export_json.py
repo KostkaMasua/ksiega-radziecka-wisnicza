@@ -135,9 +135,18 @@ for e in orig_entries:
     orig_by_key[(e["data"], e["skan"])].append(e)
 used = _dd(int)  # ile już zużyto z danej grupy
 
-KW_SEP = re.compile(r"[,;/]+")
+# Słowa klucze: zawsze małymi literami i bez kropek. Kropka ze spacją po słowie
+# (np. „czapka. dziwować się”) rozdziela dwa hasła; inicjały („P. J.”) nie rozdzielają.
+KW_SEP = re.compile(r"[,;/]+|(?<=\w\w)\.\s+")
+def norm_kw(t):
+    return re.sub(r"\s+", " ", (t or "").replace(".", " ")).strip().lower()
 def split_kw(s):
-    return [t.strip() for t in KW_SEP.split(s or "") if t.strip()]
+    out = []
+    for t in KW_SEP.split(s or ""):
+        t = norm_kw(t)
+        if t and t not in out:
+            out.append(t)
+    return out
 
 # --- Redakcja notatki prawno-opisowej z pola „Dodatkowe okoliczności” ---
 # Notatka opisowa czerpie treść WYŁĄCZNIE z pola „Dodatkowe okoliczności”.

@@ -208,7 +208,7 @@ a.btn{text-decoration:none}
   .filters:not([data-open]) .more{display:none}
   .mini button{grid-template-columns:86px minmax(0,1fr)}.mini .r{grid-column:2}
 }
-@media (min-width:861px){.filters .mtoggle{display:none}}
+@media (min-width:861px){.filters .mtoggle{display:none}#fW .more{display:flex;flex-wrap:wrap;gap:10px;align-items:end;width:100%}}
 @media (max-width:640px){
   .brand{order:0}#theme{order:1;margin-left:auto}.tabs{order:2;margin-left:0;width:100%}.tabs a{flex:1;justify-content:center}
   .top{padding-block:6px 0}
@@ -237,6 +237,8 @@ a.btn{text-decoration:none}
   <section class="view" id="v-wpisy" aria-label="Wpisy">
     <form class="filters" id="fW" role="search" onsubmit="return false">
       <label class="field q">Szukaj osoby, tematu lub słowa<input type="search" id="wq" placeholder="np. Noskowicz, kradzież, cech" autocomplete="off"></label>
+      <label class="field w-m">Słowo kluczowe<input type="search" id="wkw" list="kwlist" placeholder="np. dług, ogród" autocomplete="off"></label>
+      <datalist id="kwlist"></datalist>
       <label class="field w-s">Rodzaj wpisu<select id="wtyp"></select></label>
       <label class="field w-xs">Od roku<select id="wod"></select></label>
       <label class="field w-xs">Do roku<select id="wdo"></select></label>
@@ -358,6 +360,8 @@ function hl(s, q){
 }
 const opts = (arr, empty) => `<option value="">${esc(empty)}</option>` + arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'osoba';
+// słowa klucze zawsze małymi literami i bez kropek
+const normKw = t => String(t ?? '').replace(/\./g,' ').replace(/\s+/g,' ').trim().toLowerCase();
 const idToHash = id => 'w-' + id.replace(/[^A-Za-z0-9-]/g,'-');
 // Skan w Skanotece Genealodzy.pl (zespół 118, jednostka 4 „Księga radziecka Wiśnicza”).
 // Numer skanu z bazy = nazwa pliku w Skanotece (NNN.JPG, zera wiodące); jednostka ma skany 001–568.
@@ -389,10 +393,10 @@ const narrow = () => matchMedia('(max-width:860px)').matches;
 const W = { sel:null, sort:'asc', fresh:false, f:{}, r:[] };
 function readW(){
   W.f = { q:$('wq').value, typ:$('wtyp').value, od:$('wod').value, do:$('wdo').value, temat:$('wtemat').value,
-          rola:$('wrola').value, stat:$('wstat').value, skan:$('wskan').value.trim(), multi:$('wmulti').checked, kw:W.f.kw || '' };
+          rola:$('wrola').value, stat:$('wstat').value, skan:$('wskan').value.trim(), multi:$('wmulti').checked, kw:$('wkw').value.trim() };
 }
 function filterW(){
-  const f = W.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean);
+  const f = W.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean), kq = normKw(f.kw), kExact = D.kwCount.has(kq);
   const r = D.wpisy.filter(w => {
     if (f.typ && w.typ !== f.typ) return false;
     if (f.temat && w.temat !== f.temat) return false;
@@ -403,7 +407,7 @@ function filterW(){
     if (f.rola && !w.osoby.some(o => o.rola === f.rola)) return false;
     if (f.stat && !w.osoby.some(o => o.status === f.stat)) return false;
     if (f.skan && String(w.skan) !== f.skan) return false;
-    if (f.kw && !(w.kw||[]).some(k => norm(k).replace(/\.$/,'') === norm(f.kw).replace(/\.$/,''))) return false;
+    if (kq && !(kExact ? w.kw.includes(kq) : w.kw.some(k => norm(k).includes(norm(kq))))) return false;
     if (toks.length && !toks.every(t => w._hay.includes(t))) return false;
     return true;
   });
@@ -415,7 +419,7 @@ function activeW(){
   if (f.typ) chips.push(['wtyp','Rodzaj: '+f.typ]); if (f.temat) chips.push(['wtemat','Temat: '+f.temat]);
   if (f.od) chips.push(['wod','Od '+f.od]); if (f.do) chips.push(['wdo','Do '+f.do]);
   if (f.rola) chips.push(['wrola','Rola: '+f.rola]); if (f.stat) chips.push(['wstat','Stan: '+f.stat]);
-  if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); if (f.kw) chips.push(['kw','Słowo: '+f.kw]);
+  if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); if (f.kw) chips.push(['wkw','Słowo: '+normKw(f.kw)]);
   const el = $('wact'); el.hidden = !chips.length && !f.q;
   el.innerHTML = chips.length || f.q ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
 }
@@ -457,7 +461,7 @@ function detailW(){
       ${w.osoby.map(o => { const k = imie(o), ix = D.osIdx[k]; return `<tr><td>${ix ? `<button type="button" class="link" data-os="${esc(k)}" title="Karta osoby">${hl(k, f.q)}</button>` : hl(k, f.q)}</td>
         <td>${esc(o.rola)}</td><td>${esc(o.status||'—')}</td><td>${esc(o.miejscowosc||'—')}</td><td style="color:var(--ink-2)">${esc(o.uwagi||'')}</td></tr>`; }).join('')}
       </tbody></table></div></div>
-    ${(w.kw||[]).length ? `<div class="sec"><p class="lbl">Słowa kluczowe</p><div class="kw">${w.kw.map(k => `<button type="button" data-kw="${esc(k)}" title="Pokaż wpisy z tym słowem">${esc(k.replace(/\.$/,''))}</button>`).join('')}</div></div>` : ''}
+    ${(w.kw||[]).length ? `<div class="sec"><p class="lbl">Słowa kluczowe</p><div class="kw">${w.kw.map(k => `<button type="button" data-kw="${esc(k)}" title="Pokaż wpisy z tym słowem">${esc(k)}</button>`).join('')}</div></div>` : ''}
     ${other.length ? `<div class="sec"><p class="lbl">Te same osoby w innych wpisach</p><ul class="mini">${other.slice(0,12).map(([x,k]) => { const dd = dataRom(x.data); return `<li><button type="button" data-goto="${esc(x.id)}">
         <span class="margin">${dd.d} ${dd.y}</span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(k)}</span></button></li>`; }).join('')}</ul>
         ${other.length > 12 ? `<p style="font-size:13px;color:var(--ink-2);margin:8px 0 0">i ${plural(other.length-12,'kolejny wpis','kolejne wpisy','kolejnych wpisów')}. Otwórz kartę osoby, aby zobaczyć wszystkie.</p>` : ''}</div>` : ''}
@@ -573,7 +577,7 @@ function openPerson(name, fromHash){
   if (!O.r.some(o => o.osoba === name)) { for (const k of ['oq','ostat','ozaw','omin']) $(k).value = ''; $('ofam').checked = false; updateO(); }
   selectO(name, {scroll:true, open:true, noHash:fromHash});
 }
-function clearW(){ for (const k of ['wq','wtyp','wod','wdo','wtemat','wrola','wstat','wskan']) $(k).value = ''; $('wmulti').checked = false; W.f.kw = ''; updateW(); }
+function clearW(){ for (const k of ['wq','wkw','wtyp','wod','wdo','wtemat','wrola','wstat','wskan']) $(k).value = ''; $('wmulti').checked = false; updateW(); }
 window.addEventListener('hashchange', route);
 document.querySelectorAll('[data-tab]').forEach(a => a.addEventListener('click', e => {
   // ponowne kliknięcie aktywnej zakładki na telefonie wraca do listy
@@ -591,11 +595,11 @@ document.addEventListener('click', e => {
   const o = t.closest('[data-o]'); if (o) { selectO(o.dataset.o, {open:true}); return; }
   const g = t.closest('[data-goto]'); if (g) { openEntry(g.dataset.goto); return; }
   const p = t.closest('[data-os]'); if (p) { openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
-  const k = t.closest('[data-kw]'); if (k) { W.f.kw = k.dataset.kw; filterW(); activeW(); renderListW(); detailW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw.replace(/\.$/,'') + '”'); return; }
+  const k = t.closest('[data-kw]'); if (k) { $('wkw').value = k.dataset.kw; updateW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw + '”'); return; }
   const c = t.closest('[data-clear]'); if (c) {
     const key = c.dataset.clear, inW = !!c.closest('#wact');
     if (key === 'all') { if (inW) clearW(); else { for (const x of ['oq','ostat','ozaw','omin']) $(x).value=''; $('ofam').checked=false; updateO(); } return; }
-    if (key === 'kw') W.f.kw = ''; else if ($(key).type === 'checkbox') $(key).checked = false; else $(key).value = '';
+    if ($(key).type === 'checkbox') $(key).checked = false; else $(key).value = '';
     inW ? updateW() : updateO(); return; }
   if (t.closest('#sortW')) { W.sort = W.sort === 'asc' ? 'desc' : 'asc'; filterW(); renderListW(); return; }
   if (t.closest('#sortO')) { O.sort = O.sort === 'n' ? 'a' : 'n'; filterO(); renderListO(); return; }
@@ -636,9 +640,12 @@ fetch('data/data.json').then(r => { if (!r.ok) throw new Error(r.status); return
   D = d; D.byId = {}; D.osIdx = {}; D.hashW = {}; D.hashO = {};
   for (const o of D.osoby_indeks) { o.wpisy = []; o._hay = norm([o.osoba, o.statusy, (o.zawody||[]).join(' '), (o.uwagi||[]).join(' ')].join(' '));
     let s = slug(o.osoba), k = 2; while (D.hashO[s]) s = slug(o.osoba) + '-' + k++; o.slug = s; D.hashO[s] = o; D.osIdx[o.osoba] = o; }
+  D.kwCount = new Map();
   for (const w of D.wpisy) { D.byId[w.id] = w; D.hashW[idToHash(w.id)] = w;
-    w._hay = norm([w.temat, w.typ, w.charakter, w.slowa, w.nota_okol, w.nota_strony, w.streszczenie, ...w.osoby.map(o => imie(o)+' '+o.miejscowosc+' '+o.status+' '+o.uwagi)].join(' '));
+    w.kw = [...new Set((w.kw||[]).map(normKw).filter(Boolean))]; for (const k of w.kw) D.kwCount.set(k, (D.kwCount.get(k)||0) + 1);
+    w._hay = norm([w.temat, w.typ, w.charakter, w.kw.join(' '), w.nota_okol, w.nota_strony, w.streszczenie, ...w.osoby.map(o => imie(o)+' '+o.miejscowosc+' '+o.status+' '+o.uwagi)].join(' '));
     for (const o of w.osoby) { const ix = D.osIdx[imie(o)]; if (ix && !ix.wpisy.includes(w.id)) ix.wpisy.push(w.id); } }
+  $('kwlist').innerHTML = [...D.kwCount].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).map(([k,n]) => `<option value="${esc(k)}" label="${plural(n,'wpis','wpisy','wpisów')}"></option>`).join('');
   $('nW').textContent = D.wpisy.length; $('nO').textContent = D.osoby_indeks.length;
   const typy = [...new Set(D.wpisy.map(w => w.typ).filter(t => t && t !== '-'))].sort((a,b) => a.localeCompare(b,'pl'));
   $('wtyp').innerHTML = opts(typy, 'Wszystkie');

@@ -323,6 +323,13 @@ for e in bloki:
 wpisy.sort(key=lambda w: (w["data"], w["id"]))
 
 # ---------- 4. indeks osób i miejsc ----------
+# Notatki o osobie niosą identyfikatory wpisów, z których pochodzą: {"t": tekst, "w": [id, ...]}.
+def dodaj(slownik, tekst, wid):
+    lista = slownik.setdefault(tekst, [])
+    if wid not in lista:
+        lista.append(wid)
+def notki(slownik, limit=40):
+    return [{"t": t, "w": ids} for t, ids in list(slownik.items())[:limit]]
 P = {}
 miejsca = defaultdict(lambda: {"strony": set(), "liczba": 0})
 zawody_licz = Counter()
@@ -334,7 +341,7 @@ for w in wpisy:
         if is_junk(nazwa):
             continue
         rec = P.setdefault(nazwa, {"osoba": nazwa, "wpisy": [], "strony": [], "statusy": set(), "zawody": set(),
-                                   "uwagi": [], "rodzina": [], "okolicznosci": [],
+                                   "uwagi": {}, "rodzina": {}, "okolicznosci": {},   # tekst -> [id wpisów]
                                    "pow": defaultdict(lambda: {"ile": 0, "sprawy": []})})
         if w["id"] not in rec["wpisy"]:
             rec["wpisy"].append(w["id"])
@@ -345,15 +352,13 @@ for w in wpisy:
             rec["zawody"].add(l["zaw"]); zawody_licz[l["zaw"]] += 1
         for tekst in (l["uw"], ("dom: " + l["dom"]) if l["dom"] else ""):
             if tekst:
-                lista = rec["rodzina"] if RODZINA_RE.search(tekst) and not tekst.startswith("dom:") else rec["uwagi"]
-                if tekst not in lista: lista.append(tekst)
+                dodaj(rec["rodzina"] if RODZINA_RE.search(tekst) and not tekst.startswith("dom:") else rec["uwagi"], tekst, w["id"])
         if l["skad"]:
             n = f"pochodzenie: {l['skad']}"
-            if n not in rec["uwagi"]: rec["uwagi"].append(n)
+            dodaj(rec["uwagi"], n, w["id"])
             miejsca[l["skad"]]["strony"].add(w["strona"]); miejsca[l["skad"]]["liczba"] += 1
         if w["okol"]:
-            n = f"{etyk}: {w['okol']}"
-            if n not in rec["okolicznosci"]: rec["okolicznosci"].append(n)
+            dodaj(rec["okolicznosci"], w["okol"], w["id"])   # sprawę (datę, temat) dopisuje strona z id
         for inna in nazwy:
             if inna == nazwa:
                 continue
@@ -368,7 +373,7 @@ for rec in P.values():
         "osoba": rec["osoba"], "liczba": str(n), "liczba_n": n,
         "strony": ", ".join(sorted(rec["strony"], key=klucz_str)),
         "statusy": ", ".join(sorted(rec["statusy"])), "zawody": sorted(rec["zawody"]),
-        "uwagi": rec["uwagi"][:12], "rodzina": rec["rodzina"][:12], "okolicznosci": rec["okolicznosci"][:12],
+        "uwagi": notki(rec["uwagi"]), "rodzina": notki(rec["rodzina"]), "okolicznosci": notki(rec["okolicznosci"]),
         "powiazania": [{"osoba": k, "ile": d["ile"], "sprawy": d["sprawy"][:5]}
                        for k, d in sorted(rec["pow"].items(), key=lambda kv: -kv[1]["ile"])[:25]],
         "_zaw_norm": pnorm(" ".join(sorted(rec["zawody"]))),

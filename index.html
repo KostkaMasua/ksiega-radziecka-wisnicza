@@ -135,6 +135,7 @@ a.btn{text-decoration:none}
 .ptable th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
 .ptable td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
 .ptable td:first-child{font:500 16px/1.3 var(--f-text)}
+.nn{color:var(--ink-3);font-style:italic}
 .link{all:unset;cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
 .link:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .kw{display:flex;flex-wrap:wrap;gap:6px}
@@ -361,7 +362,9 @@ function hl(s, q){
 const opts = (arr, empty) => `<option value="">${esc(empty)}</option>` + arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'osoba';
 // słowa klucze zawsze małymi literami i bez kropek
-const normKw = t => String(t ?? '').replace(/\./g,' ').replace(/\s+/g,' ').trim().toLowerCase();
+// wyjątki zostawione w pisowni źródła
+const KW_ORYGINAL = {'męka p j chrystusa':'męka P. J. Chrystusa'};
+const normKw = t => { const n = String(t ?? '').replace(/\./g,' ').replace(/\s+/g,' ').trim().toLowerCase(); return KW_ORYGINAL[n] || n; };
 const idToHash = id => 'w-' + id.replace(/[^A-Za-z0-9-]/g,'-');
 // Skan w Skanotece Genealodzy.pl (zespół 118, jednostka 4 „Księga radziecka Wiśnicza”).
 // Numer skanu z bazy = nazwa pliku w Skanotece (NNN.JPG, zera wiodące); jednostka ma skany 001–568.
@@ -444,7 +447,7 @@ function detailW(){
   el.innerHTML = `<div class="detail-in${W.fresh?' fresh':''}">
     <button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>
     <div class="head">
-      <div class="margin">${d.d}<br>${d.y}<small>${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
+      <div class="margin">${d.d}<br>${d.y}<small>${w.strona ? `strona ${esc(w.strona)} · ` : ''}${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
       <div>
         <h2>${hl(tytul(w), f.q)}</h2>
         <div class="sub"><span class="tag">${esc(w.typ||'bez rodzaju')}</span>${w.charakter && w.charakter!==w.typ ? `<span>${esc(w.charakter)}</span>` : ''}<span class="num">${plural(w.osoby.length,'osoba','osoby','osób')}</span>${i>=0?`<span class="num">· ${i+1} z ${W.r.length}</span>`:''}</div>
@@ -458,7 +461,7 @@ function detailW(){
     ${regest(w) ? `<p class="reg">${hl(regest(w), f.q)}</p>` : `<p class="reg none">Ten wpis nie ma jeszcze regestu. Strony sprawy są wymienione poniżej.</p>`}
     <div class="sec"><p class="lbl">Osoby we wpisie</p><div class="tbl"><table class="ptable">
       <thead><tr><th>Osoba</th><th>Rola</th><th>Stan</th><th>Miejscowość</th><th>Uwagi</th></tr></thead><tbody>
-      ${w.osoby.map(o => { const k = imie(o), ix = D.osIdx[k]; return `<tr><td>${ix ? `<button type="button" class="link" data-os="${esc(k)}" title="Karta osoby">${hl(k, f.q)}</button>` : hl(k, f.q)}</td>
+      ${w.osoby.map(o => { const k = imie(o), ix = o.nn ? null : D.osIdx[k]; return `<tr><td>${o.nn ? `<span class="nn" title="Osoba bez imienia i nazwiska w źródle">NN</span>` : ix ? `<button type="button" class="link" data-os="${esc(k)}" title="Karta osoby">${hl(k, f.q)}</button>` : hl(k, f.q)}</td>
         <td>${esc(o.rola)}</td><td>${esc(o.status||'—')}</td><td>${esc(o.miejscowosc||'—')}</td><td style="color:var(--ink-2)">${esc(o.uwagi||'')}</td></tr>`; }).join('')}
       </tbody></table></div></div>
     ${(w.kw||[]).length ? `<div class="sec"><p class="lbl">Słowa kluczowe</p><div class="kw">${w.kw.map(k => `<button type="button" data-kw="${esc(k)}" title="Pokaż wpisy z tym słowem">${esc(k)}</button>`).join('')}</div></div>` : ''}
@@ -644,7 +647,7 @@ fetch('data/data.json').then(r => { if (!r.ok) throw new Error(r.status); return
   for (const w of D.wpisy) { D.byId[w.id] = w; D.hashW[idToHash(w.id)] = w;
     w.kw = [...new Set((w.kw||[]).map(normKw).filter(Boolean))]; for (const k of w.kw) D.kwCount.set(k, (D.kwCount.get(k)||0) + 1);
     w._hay = norm([w.temat, w.typ, w.charakter, w.kw.join(' '), w.nota_okol, w.nota_strony, w.streszczenie, ...w.osoby.map(o => imie(o)+' '+o.miejscowosc+' '+o.status+' '+o.uwagi)].join(' '));
-    for (const o of w.osoby) { const ix = D.osIdx[imie(o)]; if (ix && !ix.wpisy.includes(w.id)) ix.wpisy.push(w.id); } }
+    for (const o of w.osoby) { if (o.nn) continue; const ix = D.osIdx[imie(o)]; if (ix && !ix.wpisy.includes(w.id)) ix.wpisy.push(w.id); } }
   $('kwlist').innerHTML = [...D.kwCount].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0],'pl')).map(([k,n]) => `<option value="${esc(k)}" label="${plural(n,'wpis','wpisy','wpisów')}"></option>`).join('');
   $('nW').textContent = D.wpisy.length; $('nO').textContent = D.osoby_indeks.length;
   const typy = [...new Set(D.wpisy.map(w => w.typ).filter(t => t && t !== '-'))].sort((a,b) => a.localeCompare(b,'pl'));

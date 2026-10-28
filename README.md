@@ -33,7 +33,7 @@ identyfikator wpisu (Tabela A ↔ Tabela B).
 
 ```
 index.html        – cała strona (HTML + CSS + JS, bez zależności budowania)
-data/data.json    – dane wyeksportowane z pliku xlsx
+data/data.json    – dane wyeksportowane z arkusza xlsx skryptem eksport_bazy.py
 mapa/             – mapa: mapa.js, maplibre.css, teren (kafle NMT), warstwy katastru (GeoJSON),
                     skan 1847, modele domów (GLB)
 archiwum-2026-10/ – kopia poprzedniej wersji strony
@@ -42,9 +42,19 @@ archiwum-2026-10/ – kopia poprzedniej wersji strony
 
 ## Aktualizacja danych
 
-Dane pochodzą z pliku `Baza_Ksiega_radziecka_Wisnicza_1712-1736.xlsx`
-(arkusze: WPISY, OSOBY, Indeks osób, Indeks miejsc). Po zmianie w xlsx
-wygeneruj ponownie `data/data.json` skryptem eksportu i wykonaj commit.
+Bazę generuje skrypt `eksport_bazy.py` z jednego arkusza źródłowego
+(„Księga radziecka Wiśnicza 1712-1736.xlsx”, pierwszy arkusz):
+
+```
+python eksport_bazy.py "Księga radziecka Wiśnicza 1712-1736.xlsx"
+```
+
+Skrypt zapisuje `data/data.json` i drukuje podsumowanie. Wpisy już obecne w bazie
+zachowują swoje identyfikatory (linki `#w-…` działają dalej), nowe dostają kolejny
+numer w obrębie dnia. Zredagowane opisy okoliczności pochodzą z `nota_red.json`.
+Słowa klucze zapisujemy małymi literami i bez kropek; wyjątki w pisowni źródła
+wymienia `KW_ORYGINAL` w skrypcie. Strony sprawy z kolumn Kto / Z kim, których
+nie ma wśród osób wpisu, są dopisywane jako osoby. Po eksporcie wystarczy commit.
 
 ## Źródło
 

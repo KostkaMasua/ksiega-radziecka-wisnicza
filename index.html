@@ -60,7 +60,10 @@ mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
 .btn svg{width:16px;height:16px;flex:none}
 .btn.icon{width:36px;padding:0}
 .btn.quiet{border-color:transparent;background:transparent}
-@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--field)}.btn.quiet:hover{background:var(--sheet-2)}}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:var(--paper);text-decoration:none}
+a.btn{text-decoration:none}
+.btn[aria-disabled="true"]{color:var(--ink-3);border-style:dashed;cursor:default}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--field)}.btn.quiet:hover{background:var(--sheet-2)}.btn.primary:hover{background:var(--ink-2);border-color:var(--ink-2)}.btn[aria-disabled="true"]:hover{background:var(--sheet)}}
 .field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2);font-weight:500;min-width:0}
 .field input,.field select{height:36px;border:1px solid var(--rule-2);border-radius:4px;background:var(--field);padding:0 10px;color:var(--ink);font-weight:400;font-size:14px;min-width:0;width:100%}
 .field input::placeholder{color:var(--ink-3)}
@@ -328,6 +331,7 @@ const plural = (n, a, b, c) => n + ' ' + (n===1 ? a : (n%10>=2 && n%10<=4 && (n
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
 const ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
 const ICON_QUOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6"/><path d="M20 4l-9 9"/><path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/></svg>';
 const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
 
 function dataRom(iso){ const [y,m,d] = (iso||'').split('-'); if(!y) return {d:'bez daty', y:''}; return {d:(d? +d+' ':'') + (m? ROM[+m-1] : ''), y}; }
@@ -355,6 +359,10 @@ function hl(s, q){
 const opts = (arr, empty) => `<option value="">${esc(empty)}</option>` + arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'osoba';
 const idToHash = id => 'w-' + id.replace(/[^A-Za-z0-9-]/g,'-');
+// Skan w Skanotece Genealodzy.pl (zespół 118, jednostka 4 „Księga radziecka Wiśnicza”).
+// Numer skanu z bazy = nazwa pliku w Skanotece (NNN.JPG, zera wiodące); jednostka ma skany 001–568.
+const SKAN_BASE = 'https://skanoteka.genealodzy.pl/index.php?op=pg&id=3201&se=1&sy=4&plik=', SKAN_MAX = 568;
+function skanUrl(skan){ const n = parseInt(String(skan || '').trim(), 10); return (!n || n < 1 || n > SKAN_MAX) ? null : SKAN_BASE + String(n).padStart(3,'0') + '.JPG'; }
 
 let toastT = null;
 function toast(msg){ const t = $('toast'); t.textContent = msg; t.removeAttribute('data-off'); clearTimeout(toastT); toastT = setTimeout(() => t.setAttribute('data-off',''), 1800); }
@@ -424,7 +432,7 @@ function renderListW(){
 function detailW(){
   const w = W.r.find(x => x.id === W.sel) || (W.sel && D.byId[W.sel]), f = W.f, el = $('dW');
   if (!w){ el.innerHTML = `<div class="detail-in"><div class="empty"><b>Nie wybrano wpisu</b>Wybierz wpis z listy po lewej albo zmień filtry.</div></div>`; return; }
-  const d = dataRom(w.data), i = W.r.indexOf(w);
+  const d = dataRom(w.data), i = W.r.indexOf(w), su = skanUrl(w.skan);
   const inni = new Map();
   for (const o of w.osoby){ const k = imie(o), ix = D.osIdx[k]; if (!ix) continue;
     for (const id of ix.wpisy) if (id !== w.id && !inni.has(id)) inni.set(id, k); }
@@ -432,11 +440,12 @@ function detailW(){
   el.innerHTML = `<div class="detail-in${W.fresh?' fresh':''}">
     <button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>
     <div class="head">
-      <div class="margin">${d.d}<br>${d.y}<small>skan ${esc(w.skan)}<br>${esc(w.zrodlo||'')}</small></div>
+      <div class="margin">${d.d}<br>${d.y}<small>${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
       <div>
         <h2>${hl(tytul(w), f.q)}</h2>
         <div class="sub"><span class="tag">${esc(w.typ||'bez rodzaju')}</span>${w.charakter && w.charakter!==w.typ ? `<span>${esc(w.charakter)}</span>` : ''}<span class="num">${plural(w.osoby.length,'osoba','osoby','osób')}</span>${i>=0?`<span class="num">· ${i+1} z ${W.r.length}</span>`:''}</div>
         <div class="tools">
+          ${su ? `<a class="btn primary" href="${su}" target="_blank" rel="noopener">${ICON_EXT}Skan ${esc(w.skan)} w Skanotece</a>` : `<span class="btn" aria-disabled="true" title="Ten numer skanu jest poza zakresem zdigitalizowanej jednostki">Skan ${esc(w.skan)} poza Skanoteką</span>`}
           <button type="button" class="btn" data-copy="link">${ICON_LINK}Kopiuj link</button>
           <button type="button" class="btn" data-copy="cyt">${ICON_QUOTE}Kopiuj przypis</button>
         </div>
@@ -596,7 +605,7 @@ document.addEventListener('click', e => {
     if (cp.dataset.copy === 'olink') { copy(pageLink('o-' + D.osIdx[O.sel].slug), 'Skopiowano link do karty osoby'); return; }
     const x = D.byId[W.sel]; if (!x) return;
     if (cp.dataset.copy === 'link') copy(pageLink(idToHash(x.id)), 'Skopiowano link do wpisu');
-    else copy(`Księga radziecka miasta Nowy Wiśnicz 1712–1736, wpis z ${dataSlow(x.data)}, skan ${x.skan}: ${tytul(x)} (${x.typ||'bez rodzaju'}). ${pageLink(idToHash(x.id))}`, 'Skopiowano przypis');
+    else copy(`Księga radziecka miasta Nowy Wiśnicz 1712–1736, wpis z ${dataSlow(x.data)}, skan ${x.skan}: ${tytul(x)} (${x.typ||'bez rodzaju'}). ${pageLink(idToHash(x.id))}${skanUrl(x.skan) ? ' Skan: ' + skanUrl(x.skan) : ''}`, 'Skopiowano przypis');
   }
 });
 // strzałki ↑↓ przechodzą po liście (bez animacji: to czynność wykonywana setki razy)

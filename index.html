@@ -2,699 +2,649 @@
 <html lang="pl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<title>Księga radziecka Wiśnicza 1712–1736 — baza wpisów i osób</title>
-<meta name="description" content="Wyszukiwarka wpisów sądowych i osób z księgi radzieckiej miasta Nowy Wiśnicz (1712–1736). Przeglądaj sprawy sądowe i indeks osób oraz miejscowości.">
-<link rel="canonical" href="./">
-<meta name="theme-color" content="#55388a">
-<meta property="og:type" content="website">
-<meta property="og:locale" content="pl_PL">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Księga radziecka Wiśnicza</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Baza wpisów i osób z księgi radzieckiej miasta Nowy Wiśnicz z lat 1712–1736 oraz mapa miasta według katastru galicyjskiego 1847.">
 <meta property="og:title" content="Księga radziecka Wiśnicza 1712–1736">
-<meta property="og:description" content="Baza wpisów sądowych i osób z księgi radzieckiej miasta Nowy Wiśnicz.">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
+<meta property="og:description" content="556 wpisów sądowych, 966 osób i mapa Nowego Wiśnicza z 1847 roku.">
+<meta property="og:locale" content="pl_PL">
+<meta name="theme-color" content="#f2ecdf">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,500;0,700;1,400;1,500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Układ pełnoekranowy: nagłówek z opisem na całą szerokość, pod nim wyśrodkowany
-   wybór modelu; po wyborze modelu panel filtrów przy lewej krawędzi (przewijany
-   razem z treścią, NIE lepki) i wyniki jeden pod drugim na całą pozostałą szerokość. */
+/* Układ: aplikacja na pełną wysokość; Wpisy i Osoby jako lista + karta (master-detail), Mapa na całą powierzchnię.
+   Świat: kataster galicyjski 1847 (papier, karmin murów, ochra drewna, błękit pruski wód) i rubrykowane marginesy księgi. */
 :root{
-  --bg:#eceeed; --surface:#fafbfa; --ink:#1b2024; --muted:#5c666c; --line:#cfd5d3;
-  --stamp:#55388a; --stamp-soft:#e9e3f3; --mark:#fff1b8; --chk:#96500a; --civ:#0b6b73;
-  --ok:#2f7d32; --mid:#96500a; --low:#b0413e;
-  --f-head:"Archivo Narrow","Arial Narrow",Arial,sans-serif;
-  --f-body:"Archivo",system-ui,Arial,sans-serif;
-  --f-src:"Source Serif 4",Georgia,serif;
+  --paper:#f2ecdf; --sheet:#faf6ec; --sheet-2:#ece4d2; --field:#fffdf7;
+  --rule:#d6cbb3; --rule-2:#c3b598; --line:#e6dcc8;
+  --ink:#23201b; --ink-2:#5a5146; --ink-3:#6b6152;
+  --rubric:#9e2b33; --rubric-rule:#d9a6a2; --blue:#2f5c7e; --sel:#dde7ee; --mark:#f3df9c; --ochre:#8a6418;
+  --shadow:0 8px 24px rgba(52,40,24,.16),0 1px 3px rgba(52,40,24,.12);
+  --f-text:"Alegreya", Georgia, "Times New Roman", serif;
+  --f-ui:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --gut-l:max(16px, env(safe-area-inset-left, 0px)); --gut-r:max(16px, env(safe-area-inset-right, 0px));
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#14181a; --surface:#1c2225; --ink:#e6eae8; --muted:#98a3a7; --line:#333c40;
-  --stamp:#bda8ea; --stamp-soft:#2c2540; --mark:#5a4a12; --chk:#e0a458; --civ:#5fc3cc;
-  --ok:#7bc47f; --mid:#e0a458; --low:#e58a87; color-scheme:dark}}
+  --paper:#1b1916; --sheet:#23201c; --sheet-2:#2d2924; --field:#1f1c18;
+  --rule:#3d372f; --rule-2:#544b3e; --line:#332e27;
+  --ink:#ece5d6; --ink-2:#bcb19c; --ink-3:#a89d87;
+  --rubric:#e8908b; --rubric-rule:#6e3b38; --blue:#93bddb; --sel:#283b4b; --mark:#6a5418; --ochre:#d8b25c;
+  --shadow:0 8px 24px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.4); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#14181a; --surface:#1c2225; --ink:#e6eae8; --muted:#98a3a7; --line:#333c40;
-  --stamp:#bda8ea; --stamp-soft:#2c2540; --mark:#5a4a12; --chk:#e0a458; --civ:#5fc3cc;
-  --ok:#7bc47f; --mid:#e0a458; --low:#e58a87; color-scheme:dark}
+  --paper:#1b1916; --sheet:#23201c; --sheet-2:#2d2924; --field:#1f1c18;
+  --rule:#3d372f; --rule-2:#544b3e; --line:#332e27;
+  --ink:#ece5d6; --ink-2:#bcb19c; --ink-3:#a89d87;
+  --rubric:#e8908b; --rubric-rule:#6e3b38; --blue:#93bddb; --sel:#283b4b; --mark:#6a5418; --ochre:#d8b25c;
+  --shadow:0 8px 24px rgba(0,0,0,.45),0 1px 3px rgba(0,0,0,.4); color-scheme:dark}
+
 *{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.5 var(--f-ui);-webkit-font-smoothing:antialiased;overflow:hidden}
+::selection{background:var(--mark);color:var(--ink)}
+a{color:var(--blue);text-underline-offset:3px}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+input,select{caret-color:var(--rubric)}
+*{scrollbar-color:var(--rule-2) transparent;scrollbar-width:thin}
+.num{font-variant-numeric:tabular-nums}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;display:flex;flex-direction:column;min-height:100vh}
-/* na stronie powitalnej (brak wybranego modelu) wybór modelu rozpycha się,
-   przez co stopka „Źródło…” ląduje przy dolnej krawędzi ekranu, nie pod wyborem */
-body.welcome .pick{flex:1 0 auto;justify-content:center}
-
-/* ——— NAGŁÓWEK pełnej szerokości ——— */
-header{padding:24px clamp(16px,3vw,44px) 18px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
-header .over{font-family:var(--f-head);font-weight:600;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--stamp)}
-h1{font-family:var(--f-head);font-weight:700;font-size:clamp(24px,3.2vw,34px);line-height:1.05;letter-spacing:.02em;text-transform:uppercase;margin:4px 0 6px;text-wrap:balance}
-header p{margin:0;color:var(--muted);max-width:92ch}
-header>p.lead{color:var(--ink);font-size:16px}
-header .scope{font-size:13.5px;border-left:3px solid var(--stamp);padding-left:10px}
-details.about{margin:0}
-details.about p{margin-top:10px}
-details.about>summary{cursor:pointer;font-family:var(--f-head);font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--stamp)}
-
-/* ——— WYBÓR MODELU — wyśrodkowany ——— */
-.pick{display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 16px}
-.pick .q{font-family:var(--f-head);font-weight:700;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-.pick .hint{font-size:13px;color:var(--muted)}
-.viewsw{display:flex;gap:0;border:1px solid var(--stamp);border-radius:999px;overflow:hidden}
-.viewsw button{font:inherit;font-family:var(--f-head);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;background:transparent;color:var(--stamp);border:0;padding:12px 28px;cursor:pointer}
-.viewsw button[aria-pressed="true"]{background:var(--stamp);color:var(--surface)}
-
-/* ——— UKŁAD APLIKACJI: panel filtrów + wyniki ——— */
-.app{display:none}
-.app.active{display:grid;grid-template-columns:1fr;gap:0}
-@media (min-width:860px){
-  .app.active{grid-template-columns:200px minmax(0,1fr);align-items:start}
-}
-/* panel filtrów — przy lewej krawędzi ekranu; na szerokich ekranach LEPKI (przesuwa się
-   razem z przewijaniem, zostaje widoczny), z własnym scrollem gdy jest wyższy niż ekran */
-.search{background:var(--surface);border-right:1px solid var(--line);border-bottom:1px solid var(--line);
-  padding:14px clamp(12px,1.4vw,18px);display:flex;flex-direction:column;gap:7px}
-@media (max-width:859px){.search{border-right:0}}
-@media (min-width:860px){
-  .search{position:sticky;top:0;align-self:start;max-height:100vh;overflow-y:auto}
-}
-.search .vswmini{display:flex;border:1px solid var(--stamp);border-radius:999px;overflow:hidden;margin-bottom:6px}
-.search .vswmini button{flex:1;font:inherit;font-family:var(--f-head);font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;background:transparent;color:var(--stamp);border:0;padding:8px 4px;cursor:pointer}
-.search .vswmini button[aria-pressed="true"]{background:var(--stamp);color:var(--surface)}
-.backbtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--stamp);background:transparent;border:1px solid var(--stamp);border-radius:4px;padding:8px;cursor:pointer;margin-top:8px}
-.backbtn:disabled{opacity:.4;cursor:default}
-.grp{font-family:var(--f-head);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--stamp);font-weight:700;margin:8px 0 1px;opacity:.9}
-label{display:flex;flex-direction:column;gap:3px;font-family:var(--f-head);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
-input[type=search],input[type=number],select{font:inherit;font-family:var(--f-body);font-size:14px;letter-spacing:0;text-transform:none;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:3px;padding:7px 8px;width:100%;min-width:0}
-input:focus-visible,button:focus-visible,summary:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--stamp);outline-offset:2px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.check{flex-direction:row;align-items:center;gap:7px;text-transform:none;letter-spacing:0;font-family:var(--f-body);font-size:12.5px;font-weight:400;color:var(--ink);margin-top:2px}
-.check input{width:16px;height:16px;accent-color:var(--stamp);flex:none}
-.clrrow{display:flex;gap:7px;margin-top:8px}
-.clrbtn,.themebtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;border-radius:3px;padding:8px 10px;cursor:pointer;flex:1}
-.clrbtn{color:var(--stamp);background:transparent;border:1px solid var(--stamp)}
-.themebtn{color:var(--muted);background:transparent;border:1px solid var(--line)}
-
-/* ——— WYNIKI — jeden pod drugim, pełna pozostała szerokość ——— */
-.results{min-width:0;padding:14px clamp(14px,2vw,28px)}
-.count{font-family:var(--f-head);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-#list{display:flex;flex-direction:column;gap:10px}
-.rec{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;width:100%}
-.top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
-.name{font-family:var(--f-head);font-size:20px;font-weight:700;letter-spacing:.01em;line-height:1.15;min-width:0;overflow-wrap:anywhere}
-.name span{font-weight:500}
-.born{font-variant-numeric:tabular-nums;color:var(--muted);white-space:nowrap}
-dl{margin:0;display:grid;grid-template-columns:116px minmax(0,1fr);gap:5px 12px}
-dt{font-family:var(--f-head);font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding-top:2px}
-dd{margin:0;overflow-wrap:anywhere}
-.none{color:var(--muted)}
-.ref{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
-.tag{font-family:var(--f-head);font-size:12px;font-weight:600;letter-spacing:.05em;background:var(--stamp-soft);color:var(--stamp);border-radius:3px;padding:3px 7px;font-variant-numeric:tabular-nums}
-.tag.typ{background:transparent;border:1px solid var(--stamp)}
-.tag.zr{background:transparent;border:1px solid var(--line);color:var(--muted)}
-/* link do skanu w Skanotece — klikalny tag z akcentem */
-a.tag.skanlink{background:var(--stamp);color:var(--surface);text-decoration:none;border:1px solid var(--stamp);cursor:pointer}
-a.tag.skanlink:hover{filter:brightness(1.1);text-decoration:none}
-.tag.pew-wysoka{background:transparent;color:var(--ok);border:1px solid var(--ok)}
-.tag.pew-średnia{background:transparent;color:var(--mid);border:1px solid var(--mid)}
-.tag.pew-niska{background:transparent;color:var(--low);border:1px solid var(--low)}
-details{border-top:1px solid var(--line);padding-top:10px}
-summary{cursor:pointer;font-family:var(--f-head);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--stamp)}
-.persons{margin:10px 0 0;display:flex;flex-direction:column;gap:7px}
-.person{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:6px 0;border-bottom:1px dotted var(--line)}
-.person:last-child{border-bottom:0}
-.role{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px;background:var(--stamp-soft);color:var(--stamp)}
-.role.pow{background:transparent;border:1px solid var(--ok);color:var(--ok)}
-.role.poz{background:transparent;border:1px solid var(--low);color:var(--low)}
-.role.swi{background:transparent;border:1px solid var(--civ);color:var(--civ)}
-.role.ape{background:transparent;border:1px solid var(--mid);color:var(--mid)}
-/* klikalne nazwisko osoby — do profilu w Modelu B. Styl imienia/nazwiska jak w kartach */
-button.personlink{font:inherit;font-family:var(--f-head);font-weight:700;font-size:15px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer;text-align:left}
-button.personlink span{font-weight:500;color:var(--stamp)}
-button.personlink:hover{text-decoration:underline}
-.pcta{font-family:var(--f-head);font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);opacity:0;transition:opacity .12s}
-.person:hover .pcta{opacity:1}
-.pmeta{color:var(--muted);font-size:13px}
-.nota{margin-top:4px;display:flex;flex-direction:column;gap:10px}
-.notarow{border-left:3px solid var(--stamp);padding-left:12px}
-.notalbl{display:block;font-family:var(--f-head);font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--stamp);margin-bottom:3px}
-.notarow p,.notadesc{margin:0;font-family:var(--f-src);font-size:16px;line-height:1.55;max-width:86ch;color:var(--ink)}
-.morebtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--surface);background:var(--stamp);border:0;border-radius:4px;padding:14px;cursor:pointer;width:100%;margin-top:10px}
-.empty{background:var(--surface);border:1px dashed var(--line);border-radius:4px;padding:22px 14px;color:var(--muted)}
-.pages{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-.pages .pg{font-family:var(--f-head);font-size:12px;font-weight:600;background:var(--stamp-soft);color:var(--stamp);border-radius:3px;padding:3px 8px;font-variant-numeric:tabular-nums}
-.pages.kw{margin-top:0}
-button.kwchip{font-family:var(--f-head);border:1px solid var(--line);cursor:pointer;background:transparent;color:var(--muted);font-size:12px;font-weight:600;border-radius:3px;padding:3px 8px}
-button.kwchip:hover{background:var(--stamp);color:var(--surface);border-color:var(--stamp)}
-.rels{margin-top:10px;display:flex;flex-direction:column;gap:12px}
-.relrow{display:flex;flex-direction:column;gap:5px}
-.relrow.fam{border-left:3px solid var(--low);padding-left:10px}
-.relrow.occ{border-left:3px solid var(--civ);padding-left:10px}
-.relrow.soc{border-left:3px solid var(--mid);padding-left:10px}
-.relrow.cases{border-left:3px solid var(--stamp);padding-left:10px}
-.relrow.extra{border-left:3px solid var(--chk);padding-left:10px}
-.rellbl{font-family:var(--f-head);font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-button.zawchip{font-family:var(--f-head);font-size:12px;font-weight:600;background:transparent;color:var(--civ);border:1px solid var(--civ);border-radius:3px;padding:3px 8px;cursor:pointer}
-button.zawchip:hover{background:var(--civ);color:var(--surface)}
-.pg.st{background:transparent;border:1px solid var(--line);color:var(--muted)}
-.uwlist{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px;font-size:13.5px}
-.rellist{display:flex;flex-direction:column;gap:7px}
-.relp{display:flex;flex-direction:column;gap:2px;padding:5px 0;border-bottom:1px dotted var(--line)}
-.relp:last-child{border-bottom:0}
-button.relname{font:inherit;font-family:var(--f-head);font-weight:700;font-size:14px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer;text-align:left}
-button.relname:hover{text-decoration:underline}
-.relc{color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
-.relspr{color:var(--muted);font-size:12.5px}
-/* klikalna etykieta sprawy w powiązaniach osoby — prowadzi do karty wpisu */
-button.caselink{font:inherit;font-family:var(--f-src);font-size:12.5px;color:var(--stamp);background:transparent;border:0;padding:0;cursor:pointer}
-button.caselink:hover{text-decoration:underline}
-/* baner „Wróć do profilu osoby” nad wynikami Modelu A */
-.backosoba{margin-bottom:12px}
-button.backosobabtn{font:inherit;font-family:var(--f-head);font-weight:700;font-size:13px;letter-spacing:.04em;text-transform:uppercase;color:var(--surface);background:var(--stamp);border:0;border-radius:4px;padding:10px 14px;cursor:pointer;width:100%;text-align:left}
-button.backosobabtn strong{font-weight:700;text-transform:none;letter-spacing:0}
-button.backosobabtn:hover{filter:brightness(1.08)}
-/* chwilowe podświetlenie karty wpisu, do której przeniesiono z profilu osoby */
-.rec.highlight{outline:2px solid var(--stamp);outline-offset:2px;animation:recpulse 1.8s ease-out}
-@keyframes recpulse{0%{background:var(--stamp-soft)}100%{background:var(--surface)}}
-@media (prefers-reduced-motion:reduce){.rec.highlight{animation:none}}
-footer{border-top:1px solid var(--line);padding:16px clamp(16px,3vw,44px) 40px;color:var(--muted);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
-footer p{margin:0;max-width:92ch}
 mark{background:var(--mark);color:inherit;border-radius:2px;padding:0 1px}
+
+/* ---------- kontrolki ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 14px;border:1px solid var(--rule-2);border-radius:4px;background:var(--sheet);color:var(--ink);font-weight:500;font-size:14px;white-space:nowrap;transition:transform 140ms var(--ease-out),background-color 150ms ease}
+.btn:active{transform:scale(.97)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.icon{width:36px;padding:0}
+.btn.quiet{border-color:transparent;background:transparent}
+@media (hover:hover) and (pointer:fine){.btn:hover{background:var(--field)}.btn.quiet:hover{background:var(--sheet-2)}}
+.field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2);font-weight:500;min-width:0}
+.field input,.field select{height:36px;border:1px solid var(--rule-2);border-radius:4px;background:var(--field);padding:0 10px;color:var(--ink);font-weight:400;font-size:14px;min-width:0;width:100%}
+.field input::placeholder{color:var(--ink-3)}
+.check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);min-height:36px;white-space:nowrap}
+.check input{width:16px;height:16px;accent-color:var(--rubric);margin:0}
+.tag{display:inline-block;font-size:12px;font-weight:500;padding:1px 7px;border-radius:3px;background:var(--sheet-2);color:var(--ink);white-space:nowrap}
+.lbl{margin:0;font:600 12px/1.2 var(--f-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+
+/* ---------- nagłówek ---------- */
+.app{height:100%;display:grid;grid-template-rows:auto minmax(0,1fr)}
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:6px 24px;padding-block:8px;padding-left:var(--gut-l);padding-right:var(--gut-r);background:var(--sheet);border-bottom:1px solid var(--rule)}
+.brand{display:flex;flex-direction:column;text-decoration:none;color:var(--ink);padding-block:2px}
+.brand b{font:500 23px/1.1 var(--f-text);letter-spacing:-.005em}
+.brand span{font-size:12.5px;color:var(--ink-2)}
+.tabs{display:flex;gap:2px;margin-left:auto}
+.tabs a{display:inline-flex;align-items:center;height:44px;padding:0 14px;color:var(--ink-2);font-weight:500;text-decoration:none;border-bottom:2px solid transparent;transition:color 150ms ease}
+.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--rubric)}
+@media (hover:hover) and (pointer:fine){.tabs a:hover{color:var(--ink)}}
+.tabs a .n{font-size:12px;color:var(--ink-3);margin-left:6px;font-weight:400}
+
+/* ---------- widoki lista + karta ---------- */
+.view{min-height:0;display:grid;grid-template-rows:auto auto minmax(0,1fr)}
+.view[hidden]{display:none}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end;padding-block:12px;padding-left:var(--gut-l);padding-right:var(--gut-r);border-bottom:1px solid var(--rule);background:var(--sheet)}
+.filters .q{flex:1 1 220px}
+.filters .w-s{flex:0 1 160px}.filters .w-xs{flex:0 0 84px}.filters .w-m{flex:0 1 190px}
+.more{display:contents}
+.more-row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;width:100%}
+.active{display:flex;flex-wrap:wrap;gap:6px;align-items:center;padding-block:8px;padding-left:var(--gut-l);padding-right:var(--gut-r);border-bottom:1px solid var(--rule);background:var(--paper);font-size:13px;color:var(--ink-2)}
+.active button{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 6px 0 10px;border:1px solid var(--rule-2);border-radius:14px;background:var(--field);font-size:13px;transition:transform 140ms var(--ease-out)}
+.active button:active{transform:scale(.97)}
+.active button svg{width:14px;height:14px;color:var(--ink-3)}
+
+.split{display:grid;grid-template-columns:minmax(300px,420px) minmax(0,1fr);min-height:0}
+.list{overflow:auto;border-right:1px solid var(--rule);background:var(--sheet);overscroll-behavior:contain}
+.list-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sheet-2);padding:4px 8px 4px 16px;font-size:12.5px;font-weight:600;color:var(--ink-2);border-bottom:1px solid var(--rule)}
+.list-head .btn{height:30px;font-size:12.5px;padding:0 8px}
+.item{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 16px;color:var(--ink)}
+.item.p{grid-template-columns:minmax(0,1fr) auto}
+.item .t{display:block;font:500 15.5px/1.3 var(--f-text)}
+.item .s{display:block;font-size:12.5px;color:var(--ink-2);margin-top:2px}
+.item .c{font-size:12.5px;color:var(--ink-2);align-self:center;white-space:nowrap}
+.item.p .s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (hover:hover) and (pointer:fine){.item:hover{background:var(--field)}}
+.item[aria-current="true"]{background:var(--sel)}
+.item[aria-current="true"] .t{font-weight:700}
+.list-foot{padding:16px;font-size:12.5px;color:var(--ink-3);line-height:1.5}
+
+/* znak rozpoznawczy: rubrykowany margines z datą (miesiąc rzymski, jak w regestach) */
+.margin{font:500 15px/1.2 var(--f-text);color:var(--rubric);font-variant-numeric:oldstyle-nums proportional-nums}
+.margin small{display:block;font:400 12px/1.35 var(--f-ui);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:3px}
+
+.detail{overflow:auto;padding-block:28px 64px;padding-left:max(40px, var(--gut-l));padding-right:max(40px, var(--gut-r));overscroll-behavior:contain}
+.detail-in{max-width:880px}
+.detail-in.fresh{animation:enter 180ms var(--ease-out)}
+@keyframes enter{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
+.back{display:none}
+.head{display:grid;grid-template-columns:132px minmax(0,1fr);gap:24px;align-items:start;padding-bottom:18px;border-bottom:3px double var(--rubric-rule)}
+.head .margin{font-size:23px;line-height:1.15}
+.head h2{margin:0;font:500 31px/1.15 var(--f-text);letter-spacing:-.01em;text-wrap:balance}
+.sub{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;color:var(--ink-2);font-size:14px}
+.tools{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.reg{font:400 18px/1.6 var(--f-text);max-width:68ch;margin:20px 0 0;text-wrap:pretty}
+.reg.none{font:400 15px/1.5 var(--f-ui);color:var(--ink-2)}
+.sec{margin-top:30px}
+.sec > .lbl{margin-bottom:10px}
+.tbl{overflow-x:auto}
+.ptable{width:100%;border-collapse:collapse;font-size:14px}
+.ptable th{text-align:left;font-size:12px;color:var(--ink-2);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--rule-2);white-space:nowrap}
+.ptable td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.ptable td:first-child{font:500 16px/1.3 var(--f-text)}
+.link{all:unset;cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
+.link:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.kw{display:flex;flex-wrap:wrap;gap:6px}
+.kw button{border:1px solid var(--rule-2);background:var(--sheet);border-radius:3px;font-size:13px;padding:4px 10px;color:var(--ink);transition:transform 140ms var(--ease-out),background-color 150ms ease}
+.kw button:active{transform:scale(.97)}
+@media (hover:hover) and (pointer:fine){.kw button:hover{background:var(--field)}}
+.mini{list-style:none;margin:0;padding:0}
+.mini li{border-top:1px solid var(--line)}
+.mini li:last-child{border-bottom:1px solid var(--line)}
+.mini button{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:14px;width:100%;text-align:left;border:0;background:transparent;padding:9px 6px;color:var(--ink);align-items:baseline}
+@media (hover:hover) and (pointer:fine){.mini button:hover{background:var(--sheet)}}
+.mini .t{font:500 16px/1.3 var(--f-text)}
+.mini .r{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.facts{display:grid;grid-template-columns:minmax(150px,auto) minmax(0,1fr);gap:0;margin:0;max-width:760px}
+.facts dt,.facts dd{padding:9px 0;border-top:1px solid var(--line);margin:0}
+.facts dt{color:var(--ink-2);font-size:14px;padding-right:18px}
+.facts dd{font-size:15px}
+.facts ul{margin:0;padding-left:18px}
+.facts li+li{margin-top:4px}
+.empty{border:1px dashed var(--rule-2);border-radius:4px;padding:16px 18px;color:var(--ink-2);font-size:14.5px;background:var(--sheet);max-width:620px}
+.empty b{display:block;color:var(--ink);margin-bottom:2px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translate(-50%,0);background:var(--ink);color:var(--paper);padding:8px 14px;border-radius:4px;font-size:14px;box-shadow:var(--shadow);transition:opacity 200ms var(--ease-out),transform 200ms var(--ease-out);z-index:20;pointer-events:none}
+.toast[data-off]{opacity:0;transform:translate(-50%,8px)}
+
+/* ---------- mapa ---------- */
+#v-mapa{position:relative;min-height:0;overflow:hidden;display:block}
+#map{position:absolute;inset:0;background:#ece6d6}
+.mpanel{position:absolute;z-index:2;top:12px;left:max(12px, env(safe-area-inset-left,0px));width:320px;max-height:calc(100% - 24px);overflow:auto;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow);padding:14px 16px 16px;display:flex;flex-direction:column;gap:14px}
+.mpanel header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.mpanel h2{margin:0;font:500 22px/1.1 var(--f-text)}
+.mpanel h2 small{display:block;font:400 12.5px/1.4 var(--f-ui);color:var(--ink-2);margin-top:4px}
+.grp{display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--rule);padding-top:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--rule-2);border-radius:4px;overflow:hidden}
+.seg button{font:500 13px var(--f-ui);height:34px;border:0;background:transparent;color:var(--ink)}
+.seg button+button{border-left:1px solid var(--rule-2)}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;min-height:30px}
+.row input{width:16px;height:16px;accent-color:var(--rubric)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+.btns .btn{height:32px;font-size:13px;padding:0 10px}
+.leg{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px;font-size:12.5px;color:var(--ink-2)}
+.leg span{display:flex;align-items:center;gap:6px}
+.sw{width:14px;height:10px;border:1px solid rgba(0,0,0,.35);flex:none}
+.mnote{font-size:12.5px;color:var(--ink-2);line-height:1.5;margin:0}
+.tg{display:none}
+.mcard{position:absolute;z-index:3;right:max(12px, env(safe-area-inset-right,0px));top:56px;width:300px;background:var(--sheet);border:1px solid var(--rule);border-radius:6px;box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:10px;transform-origin:top right;transition:opacity 180ms var(--ease-out),transform 180ms var(--ease-out)}
+@starting-style{.mcard{opacity:0;transform:scale(.97)}}
+.mcard h3{margin:0;padding-right:28px;font:500 21px/1.2 var(--f-text)}
+.mcard dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0;font-size:13.5px}
+.mcard dt{color:var(--ink-2)}.mcard dd{margin:0;font-variant-numeric:tabular-nums}
+.mcard .x{position:absolute;top:8px;right:8px}
+.mcard .empty{font-size:13px;padding:10px 12px}
+.mload{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-2);font-size:14px;z-index:1;pointer-events:none}
+.maplibregl-ctrl-attrib{font-family:var(--f-ui)}
+.maplibregl-ctrl-top-right{top:6px}
+
+@media (prefers-reduced-motion:reduce){.detail-in.fresh{animation:none}.toast,.mcard{transition:opacity 150ms ease}}
+
+/* ---------- wąskie ekrany ---------- */
+@media (max-width:860px){
+  .split{grid-template-columns:1fr}
+  .split[data-pane="detail"] .list{display:none}
+  .split:not([data-pane="detail"]) .detail{display:none}
+  .list{border-right:0}
+  .detail{padding-block:16px 48px;padding-left:var(--gut-l);padding-right:var(--gut-r)}
+  .back{display:inline-flex;margin-bottom:14px}
+  .view:has(.split[data-pane="detail"]) .filters,.view:has(.split[data-pane="detail"]) .active{display:none}
+  .head{grid-template-columns:1fr;gap:6px}
+  .head .margin{font-size:19px}.head h2{font-size:25px}
+  .filters .w-s,.filters .w-m{flex:1 1 140px}
+  .filters:not([data-open]) .more{display:none}
+  .mini button{grid-template-columns:86px minmax(0,1fr)}.mini .r{grid-column:2}
+}
+@media (min-width:861px){.filters .mtoggle{display:none}}
+@media (max-width:640px){
+  .brand{order:0}#theme{order:1;margin-left:auto}.tabs{order:2;margin-left:0;width:100%}.tabs a{flex:1;justify-content:center}
+  .top{padding-block:6px 0}
+  .mpanel{left:max(12px, env(safe-area-inset-left,0px));right:max(12px, env(safe-area-inset-right,0px));top:auto;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:auto;max-height:46%}
+  .mpanel.min > :not(header){display:none}
+  .tg{display:inline-flex}
+  .mcard{left:max(12px, env(safe-area-inset-left,0px));right:max(12px, env(safe-area-inset-right,0px));top:12px;width:auto;transform-origin:top center}
+  .facts{grid-template-columns:1fr}.facts dd{border-top:0;padding-top:0}
+}
 </style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"}}</script>
 </head>
-<body class="welcome">
-  <header>
-    <div class="over">Akta miejskie dawnego Wiśnicza</div>
-    <h1>Księga radziecka Wiśnicza 1712–1736</h1>
-    <p class="lead">Baza wpisów sądowych rady miejskiej (consulare) miasta Nowy Wiśnicz oraz występujących w nich osób i miejscowości. Przeszukuj sprawy po nazwisku, typie sprawy, dacie lub roli procesowej — albo przełącz się na indeks osób i przeglądaj, na których stronach rękopisu kto występuje.</p>
-    <p class="scope" id="scope">Wczytuję dane…</p>
-    <details class="about"><summary>Więcej o stronie</summary>
-    <p>Dane pochodzą ze zindeksowanej księgi radzieckiej (akt rady miejskiej) Wiśnicza z lat 1712–1736. Model danych jest relacyjny: <strong>Tabela A — WPISY</strong> (jedna sprawa sądowa) jest powiązana z <strong>Tabelą B — OSOBY</strong> (osoby występujące w sprawie) przez wspólny identyfikator wpisu. Każda osoba ma rolę procesową (powód, pozwany, świadek, apelant, osoba wzmiankowana) i — jeśli znany — status stanowy (Honestus, Famatus, Laboriosus, Nobilis, Infidelis itd.).</p>
-    <p>Strona ma <strong>dwa widoki</strong>, które wybierasz poniżej: <strong>Wpisy (model A)</strong> — karta to sprawa sądowa z notatką, słowami kluczami i listą osób; <strong>Osoby (model B)</strong> — karta to osoba z indeksu, z numerami stron rękopisu, na których występuje.</p>
-    <p>Układ i działanie wzorowane na projekcie „Zaginieni i poszukiwani w edyktach”.</p>
-    </details>
+<body>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="#wpisy"><b>Księga radziecka Wiśnicza</b><span id="brandsub">1712–1736 · akta rady miejskiej Nowego Wiśnicza</span></a>
+    <nav class="tabs" aria-label="Widoki">
+      <a href="#wpisy" data-tab="wpisy">Wpisy<span class="n num" id="nW"></span></a>
+      <a href="#osoby" data-tab="osoby">Osoby<span class="n num" id="nO"></span></a>
+      <a href="#mapa" data-tab="mapa">Mapa<span class="n">1847</span></a>
+    </nav>
+    <button type="button" class="btn icon quiet" id="theme" aria-label="Przełącz motyw jasny lub ciemny"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
   </header>
 
-  <!-- WYBÓR MODELU — wyśrodkowany; filtry i wyniki pojawiają się dopiero po wyborze -->
-  <section class="pick" id="pick">
-    <div class="q">Wybierz widok</div>
-    <div class="viewsw" role="group" aria-label="Wybór widoku">
-      <button type="button" id="vA">Wpisy (model A)</button>
-      <button type="button" id="vB">Osoby (model B)</button>
+  <!-- ===== Wpisy ===== -->
+  <section class="view" id="v-wpisy" aria-label="Wpisy">
+    <form class="filters" id="fW" role="search" onsubmit="return false">
+      <label class="field q">Szukaj osoby, tematu lub słowa<input type="search" id="wq" placeholder="np. Noskowicz, kradzież, cech" autocomplete="off"></label>
+      <label class="field w-s">Rodzaj wpisu<select id="wtyp"></select></label>
+      <label class="field w-xs">Od roku<select id="wod"></select></label>
+      <label class="field w-xs">Do roku<select id="wdo"></select></label>
+      <button type="button" class="btn mtoggle" id="wmore" aria-expanded="false">Więcej filtrów</button>
+      <div class="more">
+        <label class="field w-m">Temat sprawy<select id="wtemat"></select></label>
+        <label class="field w-s">Rola osoby<select id="wrola"></select></label>
+        <label class="field w-s">Stan osoby<select id="wstat"></select></label>
+        <label class="field w-xs">Nr skanu<input type="search" id="wskan" inputmode="numeric" placeholder="np. 402"></label>
+        <label class="check"><input type="checkbox" id="wmulti">Co najmniej 3 osoby</label>
+      </div>
+    </form>
+    <div class="active" id="wact" hidden></div>
+    <div class="split" id="sW">
+      <div class="list" id="lW" tabindex="-1" aria-label="Lista wpisów"><p class="list-foot">Wczytuję wpisy z księgi…</p></div>
+      <article class="detail" id="dW" aria-live="polite"></article>
     </div>
-    <div class="hint">Wpisy — przeglądaj sprawy sądowe. Osoby — przeglądaj indeks osób.</div>
   </section>
 
-  <!-- APLIKACJA: panel filtrów (lewa krawędź) + wyniki (reszta szerokości) -->
-  <div class="app" id="app">
-    <form class="search" id="f" autocomplete="off">
-      <div class="vswmini" role="group" aria-label="Zmień widok">
-        <button type="button" id="mvA" aria-pressed="true">Wpisy A</button>
-        <button type="button" id="mvB" aria-pressed="false">Osoby B</button>
+  <!-- ===== Osoby ===== -->
+  <section class="view" id="v-osoby" aria-label="Osoby" hidden>
+    <form class="filters" id="fO" role="search" onsubmit="return false">
+      <label class="field q">Szukaj osoby<input type="search" id="oq" placeholder="Imię lub nazwisko w pisowni źródła" autocomplete="off"></label>
+      <label class="field w-s">Stan<select id="ostat"></select></label>
+      <label class="field w-m">Zawód lub urząd<select id="ozaw"></select></label>
+      <button type="button" class="btn mtoggle" id="omore" aria-expanded="false">Więcej filtrów</button>
+      <div class="more">
+        <label class="field w-xs">Min. wpisów<input type="number" id="omin" min="1" max="40" placeholder="1"></label>
+        <label class="check"><input type="checkbox" id="ofam">Ma powiązania rodzinne</label>
       </div>
-
-      <!-- ——— OSOBA ——— -->
-      <div class="grp">Osoba</div>
-      <label for="qn">Nazwisko<input type="search" id="qn" placeholder="np. Muszenski"></label>
-      <label for="qi" id="lqi">Imię<input type="search" id="qi" placeholder="np. Stanislaus"></label>
-      <label for="qm" id="lqm">Miejscowość<input type="search" id="qm" placeholder="np. Bochnia"></label>
-      <!-- B: zawód + status -->
-      <label for="qz" id="lqz" hidden>Zawód / urząd<input type="search" id="qz" list="zawlist" placeholder="np. Consul, Rzeźnik"></label>
-      <datalist id="zawlist"></datalist>
-      <label for="zawsel" id="lzawsel" hidden>Częste zawody<select id="zawsel"></select></label>
-      <label for="stat" id="lstat" hidden>Status stanowy<select id="stat"></select></label>
-
-      <!-- ——— SPRAWA (model A) ——— -->
-      <div class="grp" id="gSprawa">Sprawa</div>
-      <label for="temat" id="ltemat">Temat sprawy<select id="temat"></select></label>
-      <label for="char" id="lchar">Charakter wpisu<select id="char"></select></label>
-      <label for="qk" id="lqk">Słowa klucze<input type="search" id="qk" list="kwlist" placeholder="np. dług, cech, pobicie"></label>
-      <datalist id="kwlist"></datalist>
-      <label for="kwsel" id="lkwsel">Częste hasła<select id="kwsel"></select></label>
-      <label for="zrodlo" id="lzrodlo">Źródło / okres<select id="zrodlo"></select></label>
-
-      <!-- ——— METRYKA (model A) ——— -->
-      <div class="grp" id="gMetryka">Metryka</div>
-      <div class="two" id="rowLata">
-        <label for="rokod">Rok od<select id="rokod"></select></label>
-        <label for="rokdo">Rok do<select id="rokdo"></select></label>
-      </div>
-      <label for="qskan" id="lqskan">Nr skanu<input type="search" id="qskan" inputmode="numeric" placeholder="np. 10"></label>
-      <label for="pew" id="lpew">Pewność odczytu<select id="pew"></select></label>
-      <label class="check" for="multi" id="lmulti"><input type="checkbox" id="multi">Tylko sprawy wieloosobowe</label>
-      <label class="check" for="qt" id="lqt"><input type="checkbox" id="qt">Szukaj też w treści notatki</label>
-
-      <!-- ——— OBECNOŚĆ (model B) ——— -->
-      <div class="grp" id="gObecnosc" hidden>Obecność w księdze</div>
-      <label for="qstrona" id="lqstrona" hidden>Nr strony rękopisu<input type="search" id="qstrona" inputmode="numeric" placeholder="np. 305"></label>
-      <label for="minw" id="lminw" hidden>Min. liczba wystąpień<input type="number" id="minw" min="1" step="1" placeholder="np. 5"></label>
-      <label class="check" for="hasfam" id="lhasfam" hidden><input type="checkbox" id="hasfam">Ma powiązania rodzinne</label>
-      <label class="check" for="haszaw" id="lhaszaw" hidden><input type="checkbox" id="haszaw">Ma przypisany zawód</label>
-
-      <!-- ——— SORTOWANIE / LICZBA ——— -->
-      <div class="grp">Widok wyników</div>
-      <label for="sortd" id="lsortd">Sortuj wpisy<select id="sortd">
-        <option value="data-asc">po dacie (od najstarszych)</option>
-        <option value="data-desc">po dacie (od najnowszych)</option>
-      </select></label>
-      <label for="sortb" id="lsortb" hidden>Sortuj osoby<select id="sortb">
-        <option value="alfa">alfabetycznie (A→Z)</option>
-        <option value="wyst">po liczbie wystąpień (malejąco)</option>
-      </select></label>
-      <label for="perpage">Pokaż rekordów<select id="perpage">
-        <option value="10">10</option>
-        <option value="25">25</option>
-        <option value="50">50</option>
-        <option value="100">100</option>
-        <option value="all">wszystkie</option>
-      </select></label>
-
-      <div class="clrrow"><button type="button" id="clr" class="clrbtn">Wyczyść</button><button type="button" id="theme" class="themebtn">Motyw</button></div>
-      <button type="button" id="back" class="backbtn" disabled>← Wstecz</button>
     </form>
-
-    <div class="results">
-      <div id="backosoba" class="backosoba" hidden></div>
-      <div class="count"><span id="cnt"></span></div>
-      <div id="list"></div>
-      <button type="button" id="more" class="morebtn" hidden></button>
+    <div class="active" id="oact" hidden></div>
+    <div class="split" id="sO">
+      <div class="list" id="lO" tabindex="-1" aria-label="Lista osób"></div>
+      <article class="detail" id="dO" aria-live="polite"></article>
     </div>
-  </div>
+  </section>
 
-  <footer>
-    <p><strong>Źródło:</strong> zindeksowana księga radziecka miasta Nowy Wiśnicz 1712–1736. Treść streszczeń oddaje zapis źródła; nazwy osobowe zachowują oryginalną (łacińsko-polską) pisownię, dlatego ta sama osoba może pojawiać się w wariantach fleksyjnych (np. Adalbertus / Adalberti).</p>
-    <p>Wyszukiwanie pomija polskie znaki i wielkość liter.</p>
-  </footer>
+  <!-- ===== Mapa ===== -->
+  <section class="view" id="v-mapa" aria-label="Mapa" hidden>
+    <div class="mload" id="mload">Wczytuję mapę…</div>
+    <div id="map" role="region" aria-label="Mapa Nowego Wiśnicza według katastru 1847"></div>
+    <aside class="mpanel" id="panel">
+      <header>
+        <h2>Nowy Wiśnicz 1847<small>Kataster galicyjski na terenie z NMT</small></h2>
+        <button type="button" class="btn tg" id="tg" aria-expanded="true">Zwiń</button>
+      </header>
+      <div class="grp">
+        <p class="lbl">Podkład</p>
+        <div class="seg" role="group" aria-label="Podkład">
+          <button type="button" id="b-styl" aria-pressed="true">Mapa</button>
+          <button type="button" id="b-skan" aria-pressed="false">Skan 1847</button>
+        </div>
+      </div>
+      <div class="grp">
+        <p class="lbl">Warstwy</p>
+        <label class="row" for="bh">Budynki <input id="bh" type="checkbox" checked></label>
+        <label class="row" for="wa">Warstwice co 2 m <input id="wa" type="checkbox" checked></label>
+        <div class="btns">
+          <button type="button" class="btn" id="v3d">Z ukosa</button>
+          <button type="button" class="btn" id="v2d">Z góry</button>
+          <button type="button" class="btn" id="vall">Cała gmina</button>
+        </div>
+      </div>
+      <div class="grp">
+        <p class="lbl">Objaśnienia</p>
+        <div class="leg" id="leg"></div>
+      </div>
+      <p class="mnote">Teren w rzeczywistej wysokości z numerycznego modelu terenu. Modele domów wschodniej pierzei rynku (działki 14–19/a, 210, 211), ratusz i kościół. Kliknij budynek albo działkę.</p>
+    </aside>
+    <section class="mcard" id="card" hidden aria-live="polite">
+      <button type="button" class="btn icon quiet x" id="cx" aria-label="Zamknij"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      <h3 id="ct">Budynek</h3>
+      <dl id="cd"></dl>
+      <div class="empty" id="ce"></div>
+    </section>
+  </section>
+</div>
+<div class="toast" id="toast" data-off role="status"></div>
 
 <script>
-const $=id=>document.getElementById(id);
-const esc=s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const norm=s=>(s||"").toLowerCase().replace(/ł/g,"l").normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-const DEFSTEP=10;
-function pageStep(){const v=$("perpage")?$("perpage").value:String(DEFSTEP);return v==="all"?Infinity:(parseInt(v,10)||DEFSTEP);}
-const RMIES=["","I","II","III","IV","V","VI","VII","VIII","IX","X","XI","XII"];
-function dataOpis(d){const m=/^(\d{4})-(\d{2}|\?\?|\[\?\])?-?(\d{2}|\?\?|\[\?\])?/.exec(d||"");if(!m)return d||"";
-  const y=m[1],mo=m[2],dd=m[3];let s=y;if(mo&&/^\d+$/.test(mo))s=(RMIES[+mo]||mo)+" "+y;if(dd&&/^\d+$/.test(dd))s=(+dd)+" "+(RMIES[+mo]||"")+" "+y;return s.replace(/\s+/g," ").trim();}
+"use strict";
+// ================= dane i narzędzia =================
+let D = null;
+const $ = id => document.getElementById(id);
+const ROM = ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'];
+const MIES = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const normCh = c => c.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[łŁ]/,'l').toLowerCase().charAt(0) || c;
+const norm = s => Array.from(String(s ?? ''), normCh).join('');
+const plural = (n, a, b, c) => n + ' ' + (n===1 ? a : (n%10>=2 && n%10<=4 && (n%100<12||n%100>14)) ? b : c);
+const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
+const ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
+const ICON_QUOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
+const ICON_BACK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>';
 
-// Link do skanu w Skanotece Genealodzy.pl (Zespół 118, Jednostka 4 „Księga radziecka Wiśnicza”).
-// Numer skanu z bazy = nazwa pliku na skanotece (NNN.JPG, zera wiodące). Jednostka ma 568 skanów
-// (001–568), a najwyższy skan w bazie to 556 — więc wszystkie wpisy mają odpowiednik na skanotece.
-const SKAN_BASE="https://skanoteka.genealodzy.pl/index.php?op=pg&id=3201&se=1&sy=4&plik=";
-const SKAN_MAX=568;
-function skanUrl(skan){
-  const n=parseInt(String(skan||"").trim(),10);
-  if(!n || n<1 || n>SKAN_MAX) return null;
-  return SKAN_BASE + String(n).padStart(3,"0") + ".JPG";
+function dataRom(iso){ const [y,m,d] = (iso||'').split('-'); if(!y) return {d:'bez daty', y:''}; return {d:(d? +d+' ':'') + (m? ROM[+m-1] : ''), y}; }
+function dataSlow(iso){ const [y,m,d] = (iso||'').split('-'); if(!y) return 'bez daty'; return (d? +d+' ':'') + (m? MIES[+m-1]+' ' : '') + y; }
+const imie = o => (o.imie && o.imie !== '—' ? o.imie + ' ' : '') + o.nazwisko;
+const ROLA_KR = {'powód / wnoszący':'powód','pozwany / strona przeciwna':'pozwany','pozwany / oskarżony':'oskarżony','powód / pokrzywdzony':'pokrzywdzony','osoba wzmiankowana':'wzmiankowany','świadek':'świadek','apelant':'apelant'};
+const tytul = w => w.temat || w.typ || 'Wpis bez tematu';
+const regest = w => w.nota_okol || w.nota_strony || w.streszczenie || '';
+function strony(w){
+  const p = w.osoby.filter(o => /powód|apelant/.test(o.rola)).map(imie), q = w.osoby.filter(o => /pozwany/.test(o.rola)).map(imie);
+  if (!p.length && !q.length) return w.osoby.slice(0,3).map(imie).join(', ');
+  if (!p.length) return 'przeciw ' + q.join(', ');
+  return p.join(', ') + (q.length ? ' przeciw ' + q.join(', ') : '');
 }
+// podświetlenie wszystkich słów zapytania, bez względu na polskie znaki
+function hl(s, q){
+  s = String(s ?? ''); const toks = norm(q).trim().split(/\s+/).filter(t => t.length > 1);
+  if (!toks.length) return esc(s);
+  const n = norm(s), on = new Uint8Array(s.length);
+  for (const t of toks){ let i = n.indexOf(t); while (i >= 0){ on.fill(1, i, i + t.length); i = n.indexOf(t, i + 1); } }
+  let out = '', open = false;
+  for (let i = 0; i < s.length; i++){ if (on[i] && !open){ out += '<mark>'; open = true; } if (!on[i] && open){ out += '</mark>'; open = false; } out += esc(s[i]); }
+  return out + (open ? '</mark>' : '');
+}
+const opts = (arr, empty) => `<option value="">${esc(empty)}</option>` + arr.map(v => `<option value="${esc(v)}">${esc(v)}</option>`).join('');
+const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'osoba';
+const idToHash = id => 'w-' + id.replace(/[^A-Za-z0-9-]/g,'-');
 
-let D=null, VIEW=null, lim=DEFSTEP;
-let BACK_OSOBA=null;   // gdy na kartę sprawy weszliśmy z profilu osoby — nazwa tej osoby (baner powrotu)
-// historia nawigacji dla przycisku Wstecz — zapamiętuje stan filtrów/widoku
-let HIST=[];
+let toastT = null;
+function toast(msg){ const t = $('toast'); t.textContent = msg; t.removeAttribute('data-off'); clearTimeout(toastT); toastT = setTimeout(() => t.setAttribute('data-off',''), 1800); }
+async function copy(text, okMsg){
+  try { await navigator.clipboard.writeText(text); toast(okMsg); }
+  catch(_) { const ta = document.createElement('textarea'); ta.value = text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select();
+    let ok = false; try { ok = document.execCommand('copy'); } catch(e){} ta.remove(); toast(ok ? okMsg : 'Nie udało się skopiować. Zaznacz tekst ręcznie.'); }
+}
+function pageLink(hash){ const u = new URL(location.href); u.hash = hash; return u.href; }
+const narrow = () => matchMedia('(max-width:860px)').matches;
 
-function snapshot(){
-  return {VIEW,
-    qn:$("qn").value,qi:$("qi").value,qm:$("qm").value,qz:$("qz").value,zawsel:$("zawsel").value,
-    stat:$("stat").value,temat:$("temat").value,char:$("char").value,qk:$("qk").value,kwsel:$("kwsel").value,
-    zrodlo:$("zrodlo").value,rokod:$("rokod").value,rokdo:$("rokdo").value,qskan:$("qskan").value,pew:$("pew").value,
-    multi:$("multi").checked,qt:$("qt").checked,qstrona:$("qstrona").value,minw:$("minw").value,
-    hasfam:$("hasfam").checked,haszaw:$("haszaw").checked,sortd:$("sortd").value,sortb:$("sortb").value,perpage:$("perpage").value,
-    lim:lim, scrollY:window.scrollY};   // ile wyników było załadowanych + pozycja przewinięcia
-}
-function restore(s){
-  setView(s.VIEW,true);
-  $("qn").value=s.qn;$("qi").value=s.qi;$("qm").value=s.qm;$("qz").value=s.qz;$("zawsel").value=s.zawsel;
-  $("stat").value=s.stat;$("temat").value=s.temat;$("char").value=s.char;$("qk").value=s.qk;$("kwsel").value=s.kwsel;
-  $("zrodlo").value=s.zrodlo;$("rokod").value=s.rokod;$("rokdo").value=s.rokdo;$("qskan").value=s.qskan;$("pew").value=s.pew;
-  $("multi").checked=s.multi;$("qt").checked=s.qt;$("qstrona").value=s.qstrona;$("minw").value=s.minw;
-  $("hasfam").checked=s.hasfam;$("haszaw").checked=s.haszaw;$("sortd").value=s.sortd;$("sortb").value=s.sortb;$("perpage").value=s.perpage;
-  lim=s.lim||pageStep();           // odtwórz liczbę załadowanych wyników (np. po „Więcej”)
-  draw(true);                      // keep=true — nie resetuj lim do pierwszej strony
-  // Przywróć pozycję przewinięcia odpornie na późny re-layout: ponawiaj scroll aż
-  // dokument urośnie na tyle, by osiągnąć cel i pozycja się ustali (budżet ~1.2 s).
-  const targetY=s.scrollY||0;
-  const t0=performance.now();
-  (function restoreScroll(){
-    window.scrollTo(0,targetY);
-    const reached=Math.abs(window.scrollY-targetY)<=2;
-    const tall=document.body.scrollHeight-window.innerHeight>=targetY;
-    if((!reached||!tall) && performance.now()-t0<1200){requestAnimationFrame(restoreScroll);}
-  })();
-}
-function updateBack(){$("back").disabled=HIST.length===0;}
+// ================= motyw =================
+(function(){
+  let saved = null; try { saved = localStorage.getItem('motyw'); } catch(_){}
+  if (saved === 'dark' || saved === 'light') document.documentElement.dataset.theme = saved;
+  $('theme').addEventListener('click', () => {
+    const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = next;
+    try { localStorage.setItem('motyw', next); } catch(_){}
+  });
+})();
 
-function prep(){
-  for(const w of D.wpisy){
-    w._rok=(w.data||"").slice(0,4);
-    w._rokn=parseInt(w._rok,10)||0;
-    w._nn=norm((w.osoby||[]).map(o=>o.nazwisko).join(" "));
-    w._ni=norm((w.osoby||[]).map(o=>o.imie).join(" "));
-    w._nm=norm((w.osoby||[]).map(o=>[o.miejscowosc].join(" ")).join(" ")+" "+(w.streszczenie||"")+" "+(w.nota_strony||"")+" "+(w.nota_okol||""));
-    w._nt=norm((w.streszczenie||"")+" "+(w.nota_strony||"")+" "+(w.nota_okol||""));
-    w._role=(w.osoby||[]).map(o=>o.rola);
-    w._stat=norm((w.osoby||[]).map(o=>o.status).join(" "));
-    w._kw=norm((w.kw||[]).join(" ")+" "+(w.temat||""));
-    w._skan=String(w.skan||"").trim();
-  }
-  for(const o of D.osoby_indeks){
-    o._n=norm(o.osoba);
-    o._st=norm(o.statusy||"");
-    o._z=norm((o.zawody||[]).join(" "));
-    o._miej=norm([(o.uwagi||[]).join(" "),(o.okolicznosci||[]).join(" ")].join(" "));
-  }
+// ================= Wpisy =================
+const W = { sel:null, sort:'asc', fresh:false, f:{}, r:[] };
+function readW(){
+  W.f = { q:$('wq').value, typ:$('wtyp').value, od:$('wod').value, do:$('wdo').value, temat:$('wtemat').value,
+          rola:$('wrola').value, stat:$('wstat').value, skan:$('wskan').value.trim(), multi:$('wmulti').checked, kw:W.f.kw || '' };
 }
-
-function fillSelect(el,arr,allLabel){
-  el.innerHTML=`<option value="">${allLabel}</option>`+arr.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
-}
-
-function setup(){
-  prep();
-  fillSelect($("temat"),(D.meta.tematy||[]).filter(t=>t&&t!=="-"),"Wszystkie tematy");
-  fillSelect($("char"),(D.meta.charaktery||[]).filter(t=>t&&t!=="-"),"Każdy charakter");
-  fillSelect($("pew"),["wysoka","średnia","niska"],"Każda pewność");
-  const lata=D.meta.lata||[];
-  fillSelect($("rokod"),lata,"— od —");
-  fillSelect($("rokdo"),lata,"— do —");
-  // źródło / okres
-  const zrodla=[...new Set(D.wpisy.map(w=>w.zrodlo).filter(Boolean))].sort();
-  fillSelect($("zrodlo"),zrodla,"Całe źródło");
-  // statusy stanowe (z osób wpisów) — unikalne, posortowane po częstości
-  const stc={};
-  for(const w of D.wpisy)for(const o of (w.osoby||[])){const s=(o.status||"").trim();if(s&&s!=="—")stc[s]=(stc[s]||0)+1;}
-  const statusy=Object.keys(stc).sort((a,b)=>stc[b]-stc[a]||a.localeCompare(b,"pl"));
-  fillSelect($("stat"),statusy,"Każdy status");
-  // słowa klucze
-  const kws=D.meta.slowa_klucze||[];
-  $("kwlist").innerHTML=kws.map(k=>`<option value="${esc(k)}">`).join("");
-  fillSelect($("kwsel"),(D.meta.slowa_klucze_top||kws.slice(0,60)),"— wybierz częste hasło —");
-  // zawody (B)
-  const zaw=D.meta.zawody||[];
-  $("zawlist").innerHTML=zaw.map(z=>`<option value="${esc(z)}">`).join("");
-  fillSelect($("zawsel"),(D.meta.zawody_top||zaw.slice(0,60)),"— wybierz częsty zawód —");
-  const l=D.meta.lata;
-  $("scope").innerHTML=`<strong>Zasób:</strong> ${D.meta.liczba_wpisow.toLocaleString("pl-PL")} wpisów sądowych i ${D.meta.liczba_osob_indeks.toLocaleString("pl-PL")} osób w indeksie, lata ${l[0]}–${l[l.length-1]}.`;
-  // obsługa z URL — jeśli podano widok, przejdź od razu
-  const qs=new URLSearchParams(location.search);
-  if(qs.get("widok")==="B"){setView("B",true);}
-  else if(qs.get("widok")==="A"){setView("A",true);}
-  $("qn").value=qs.get("n")||"";$("qi").value=qs.get("i")||"";$("qm").value=qs.get("m")||"";
-  if(VIEW)draw();
-}
-
-// pokazanie/ukrycie pól zależnych od widoku
-function applyFieldVisibility(){
-  const A=VIEW==="A";
-  // Osoba
-  $("lqi").hidden=!A;                 // imię tylko w A (B ma nazwisko+imię w jednym polu)
-  $("lqz").hidden=A; $("lzawsel").hidden=A; $("lstat").hidden=A;   // zawód/status tylko B
-  // Sprawa (A)
-  $("gSprawa").hidden=!A; $("ltemat").hidden=!A; $("lchar").hidden=!A;
-  $("lqk").hidden=!A; $("lkwsel").hidden=!A; $("lzrodlo").hidden=!A;
-  // Metryka (A)
-  $("gMetryka").hidden=!A; $("rowLata").hidden=!A; $("lqskan").hidden=!A;
-  $("lpew").hidden=!A; $("lmulti").hidden=!A; $("lqt").hidden=!A;
-  // Obecność (B)
-  $("gObecnosc").hidden=A; $("lqstrona").hidden=A; $("lminw").hidden=A;
-  $("lhasfam").hidden=A; $("lhaszaw").hidden=A;
-  // sortowanie
-  $("lsortd").hidden=!A; $("lsortb").hidden=A;
-  // etykieta/placeholder nazwiska zależnie od widoku
-  $("qn").placeholder=A?"np. Muszenski":"np. Michalski";
-}
-
-function setView(v,silent){
-  VIEW=v;lim=pageStep();
-  $("pick").hidden=true;
-  document.body.classList.remove("welcome");
-  $("app").classList.add("active");
-  $("mvA").setAttribute("aria-pressed",v==="A");
-  $("mvB").setAttribute("aria-pressed",v==="B");
-  applyFieldVisibility();
-  if(!silent){history.replaceState(null,"",v==="B"?"?widok=B":"?widok=A");}
-}
-
-function cardWpis(w0){
-  const pew=w0.pewnosc||"";
-  const osoby=(w0.osoby||[]);
-  const pHtml=osoby.map(o=>{
-    const r=norm(o.rola);
-    let cls="";
-    if(r.includes("powod")||r.includes("wnosz")||r.includes("pokrzyw"))cls="pow";
-    else if(r.includes("pozwan")||r.includes("przeciw")||r.includes("oskarz"))cls="poz";
-    else if(r.includes("swiad"))cls="swi";
-    else if(r.includes("apelant"))cls="ape";
-    const meta=[o.status,o.miejscowosc,o.uwagi].filter(x=>x&&x!=="—").map(esc).join(" · ");
-    const pelna=[o.imie&&o.imie!=="—"?o.imie:"",o.nazwisko].filter(Boolean).join(" ").trim();
-    const imieHtml=o.imie&&o.imie!=="—"?` <span>${esc(o.imie)}</span>`:"";
-    return `<div class="person"><span class="role ${cls}">${esc(o.rola||"osoba")}</span><button type="button" class="personlink" data-osoba="${esc(pelna)}" title="Przejdź do profilu osoby (Model B)">${esc(o.nazwisko)}${imieHtml}</button>${meta?`<span class="pmeta">${meta}</span>`:""}<span class="pcta">profil →</span></div>`;
-  }).join("");
-  const zr=w0.zrodlo?`<span class="tag zr">${esc(w0.zrodlo)}</span>`:"";
-  return `<article class="rec" id="${esc(w0.id)}">
-    <div class="top"><div class="name">${esc(w0.temat||w0.charakter||"Wpis")}</div><div class="born">${dataOpis(w0.data)}</div></div>
-    <div class="ref">
-      ${w0.charakter?`<span class="tag typ">${esc(w0.charakter)}</span>`:`<span class="tag typ">wpis</span>`}
-      ${(()=>{const u=skanUrl(w0.skan);return u?`<a class="tag skanlink" href="${u}" target="_blank" rel="noopener" title="Zobacz skan ${esc(w0.skan)} w Skanotece Genealodzy.pl">skan ${esc(w0.skan)} ↗</a>`:`<span class="tag" title="Ten skan jest poza zakresem zdigitalizowanej jednostki (1–509)">skan ${esc(w0.skan)}</span>`;})()}
-      ${pew?`<span class="tag pew-${esc(pew)}">odczyt: ${esc(pew)}</span>`:""}
-      <span class="tag">${osoby.length} ${osoby.length===1?"osoba":(osoby.length%10>=2&&osoby.length%10<=4&&(osoby.length%100<12||osoby.length%100>14)?"osoby":"osób")}</span>
-      ${zr}
-    </div>
-    <div class="nota">
-      ${w0.nota_strony?`<div class="notarow"><span class="notalbl">Strony</span><p>${esc(w0.nota_strony)}</p></div>`:""}
-      ${w0.nota_okol?`<div class="notarow"><span class="notalbl">Okoliczności sprawy</span><p>${esc(w0.nota_okol)}</p></div>`:""}
-      ${(!w0.nota_strony&&!w0.nota_okol&&w0.streszczenie)?`<p class="notadesc">${esc(w0.streszczenie)}</p>`:""}
-    </div>
-    ${(w0.kw&&w0.kw.length)?`<div class="pages kw">${w0.kw.map(k=>`<button type="button" class="pg kwchip" data-kw="${esc(k)}">${esc(k)}</button>`).join("")}</div>`:""}
-    <details><summary>Kto z kim — osoby w sprawie (${osoby.length})</summary>
-      <div class="persons">${pHtml||'<span class="none">brak powiązanych osób</span>'}</div>
-    </details>
-  </article>`;
-}
-
-// Model B: imię i nazwisko prezentowane jak w Modelu A — nazwisko pogrubione, imię lżejsze.
-// Indeks osób trzyma pełną nazwę w jednym polu (np. "Jęczmykowicz Jan" albo "Knorowiczowa").
-// Rozdzielamy heurystycznie: ostatni token to imię, jeśli wygląda na imię; inaczej całość = nazwisko.
-function rozbijNazwe(pelna){
-  const t=(pelna||"").trim().split(/\s+/);
-  if(t.length<2)return {nazwisko:pelna||"",imie:""};
-  // w indeksie dominuje kolejność "Nazwisko Imię" — imię to ostatni człon
-  const imie=t[t.length-1];
-  const nazwisko=t.slice(0,-1).join(" ");
-  return {nazwisko,imie};
-}
-function cardOsoba(o){
-  const strony=(o.strony||"").split(/[,;]\s*/).filter(Boolean);
-  const zawody=(o.zawody||[]);
-  const uwagi=(o.uwagi||[]);
-  const rodzina=(o.rodzina||[]);
-  const okol=(o.okolicznosci||[]);
-  const pow=(o.powiazania||[]);
-  const statusy=(o.statusy||"").split(/[,;]\s*/).filter(Boolean);
-  const rodzHtml=rodzina.length?`<div class="relrow fam"><span class="rellbl">👪 Powiązania rodzinne</span><ul class="uwlist">${rodzina.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
-  const zawHtml=zawody.length?`<div class="relrow occ"><span class="rellbl">⚒ Powiązania zawodowe (urzędy, cechy)</span><div class="chips">${zawody.map(z=>`<button type="button" class="pg zawchip" data-zaw="${esc(z)}">${esc(z)}</button>`).join("")}</div></div>`:"";
-  const stHtml=statusy.length?`<div class="relrow soc"><span class="rellbl">🏛 Powiązania społeczne (status stanowy)</span><div class="chips">${statusy.map(s=>`<span class="pg st">${esc(s)}</span>`).join("")}</div></div>`:"";
-  const uwHtml=uwagi.length?`<div class="relrow"><span class="rellbl">Inne notatki źródła (pochodzenie, okoliczności)</span><ul class="uwlist">${uwagi.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
-  const okolHtml=okol.length?`<div class="relrow extra"><span class="rellbl">📝 Dodatkowe okoliczności spraw (${okol.length})</span><ul class="uwlist">${okol.map(u=>`<li>${esc(u)}</li>`).join("")}</ul></div>`:"";
-  const relHtml=pow.length?`<div class="relrow cases"><span class="rellbl">⚖ Powiązania przez wspólne sprawy (${pow.length}) — współwystępowanie, nie pokrewieństwo</span><div class="rellist">${pow.map(p=>`<div class="relp"><button type="button" class="relname" data-osoba="${esc(p.osoba)}">${esc(p.osoba)}</button> <span class="relc">${p.ile}×</span><div class="relspr">${(p.sprawy||[]).map(s=>{const lab=(s&&typeof s==="object")?s.label:s; const sid=(s&&typeof s==="object")?s.id:""; return sid?`<button type="button" class="caselink" data-wpis="${esc(sid)}" title="Przejdź do karty sprawy">${esc(lab)} →</button>`:esc(lab);}).join(" · ")}</div></div>`).join("")}</div></div>`:"";
-  const hasRel=rodzHtml||zawHtml||stHtml||uwHtml||okolHtml||relHtml;
-  const nm=rozbijNazwe(o.osoba);
-  const nameHtml=nm.imie?`${esc(nm.nazwisko)} <span>${esc(nm.imie)}</span>`:esc(nm.nazwisko);
-  return `<article class="rec">
-    <div class="top"><div class="name">${nameHtml}</div><div class="born">${esc(o.liczba)||"?"} wyst.</div></div>
-    <dl>
-      <dt>Zawód / urząd</dt><dd>${zawody.length?zawody.map(esc).join(", "):'<span class="none">brak w źródle</span>'}</dd>
-      <dt>Status</dt><dd>${o.statusy?esc(o.statusy):'<span class="none">brak w źródle</span>'}</dd>
-      <dt>Strony</dt><dd><div class="pages">${strony.length?strony.map(s=>`<span class="pg">str. ${esc(s)}</span>`).join(""):'<span class="none">—</span>'}</div></dd>
-    </dl>
-    ${hasRel?`<details><summary>Powiązania osoby</summary><div class="rels">${rodzHtml}${zawHtml}${stHtml}${uwHtml}${okolHtml}${relHtml}</div></details>`:""}
-  </article>`;
-}
-
-function filterWpisy(){
-  const qn=norm($("qn").value),qi=norm($("qi").value),qm=norm($("qm").value);
-  const temat=$("temat").value,char=$("char").value,pew=$("pew").value,qt=$("qt").checked;
-  const zrodlo=$("zrodlo").value,stat=norm($("stat").value);
-  const rokod=parseInt($("rokod").value,10)||0, rokdo=parseInt($("rokdo").value,10)||0;
-  const qskan=($("qskan").value||"").trim(), multi=$("multi").checked;
-  const qk=norm($("qk").value||$("kwsel").value);
-  const res=D.wpisy.filter(w0=>{
-    if(temat&&w0.temat!==temat)return false;
-    if(char&&w0.charakter!==char)return false;
-    if(zrodlo&&w0.zrodlo!==zrodlo)return false;
-    if(rokod&&w0._rokn&&w0._rokn<rokod)return false;
-    if(rokdo&&w0._rokn&&w0._rokn>rokdo)return false;
-    if(qskan&&w0._skan!==qskan)return false;
-    if(pew&&w0.pewnosc!==pew)return false;
-    if(multi&&(w0.osoby||[]).length<2)return false;
-    if(stat&&!(w0._stat||"").includes(stat))return false;
-    if(qk&&!w0._kw.includes(qk))return false;
-    if(qn&&!(w0._nn.includes(qn)||(qt&&w0._nt.includes(qn))))return false;
-    if(qi&&!w0._ni.includes(qi))return false;
-    if(qm&&!w0._nm.includes(qm))return false;
+function filterW(){
+  const f = W.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean);
+  const r = D.wpisy.filter(w => {
+    if (f.typ && w.typ !== f.typ) return false;
+    if (f.temat && w.temat !== f.temat) return false;
+    const y = +(w.data||'').slice(0,4);
+    if (f.od && y < +f.od) return false;
+    if (f.do && y > +f.do) return false;
+    if (f.multi && w.osoby.length < 3) return false;
+    if (f.rola && !w.osoby.some(o => o.rola === f.rola)) return false;
+    if (f.stat && !w.osoby.some(o => o.status === f.stat)) return false;
+    if (f.skan && String(w.skan) !== f.skan) return false;
+    if (f.kw && !(w.kw||[]).some(k => norm(k).replace(/\.$/,'') === norm(f.kw).replace(/\.$/,''))) return false;
+    if (toks.length && !toks.every(t => w._hay.includes(t))) return false;
     return true;
   });
-  const sd=$("sortd")?$("sortd").value:"data-asc";
-  res.sort((a,b)=>{
-    const c=(a.data||"").localeCompare(b.data||"")||(a.id||"").localeCompare(b.id||"");
-    return sd==="data-desc"?-c:c;
-  });
-  return res;
+  r.sort((a,b) => (a.data||'').localeCompare(b.data||'') * (W.sort === 'desc' ? -1 : 1) || a.id.localeCompare(b.id));
+  W.r = r;
 }
-function filterOsoby(){
-  const qn=norm($("qn").value);
-  const qz=norm($("qz").value||$("zawsel").value), stat=norm($("stat").value);
-  const qm=norm($("qm").value);
-  const qstrona=($("qstrona").value||"").trim();
-  const minw=parseInt($("minw").value,10)||0;
-  const hasfam=$("hasfam").checked, haszaw=$("haszaw").checked;
-  const res=D.osoby_indeks.filter(o=>{
-    if(qn&&!o._n.includes(qn))return false;
-    if(qz&&!(o._z||"").includes(qz))return false;
-    if(stat&&!(o._st||"").includes(stat))return false;
-    if(qm&&!(o._miej||"").includes(qm))return false;
-    if(qstrona&&!(o.strony||"").split(/[,;]\s*/).includes(qstrona))return false;
-    if(minw&&(o.liczba_n||0)<minw)return false;
-    if(hasfam&&!(o.rodzina&&o.rodzina.length))return false;
-    if(haszaw&&!(o.zawody&&o.zawody.length))return false;
+function activeW(){
+  const f = W.f, chips = [];
+  if (f.typ) chips.push(['wtyp','Rodzaj: '+f.typ]); if (f.temat) chips.push(['wtemat','Temat: '+f.temat]);
+  if (f.od) chips.push(['wod','Od '+f.od]); if (f.do) chips.push(['wdo','Do '+f.do]);
+  if (f.rola) chips.push(['wrola','Rola: '+f.rola]); if (f.stat) chips.push(['wstat','Stan: '+f.stat]);
+  if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); if (f.kw) chips.push(['kw','Słowo: '+f.kw]);
+  const el = $('wact'); el.hidden = !chips.length && !f.q;
+  el.innerHTML = chips.length || f.q ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
+}
+function renderListW(){
+  const f = W.f, r = W.r;
+  if (!r.find(w => w.id === W.sel)) W.sel = r[0]?.id ?? null;
+  $('lW').innerHTML = `<div class="list-head"><span class="num" id="cntW">${plural(r.length,'wpis','wpisy','wpisów')}</span>
+      <button type="button" class="btn quiet" id="sortW" aria-label="Zmień kolejność">${W.sort==='asc' ? 'Od najstarszych' : 'Od najnowszych'}</button></div>`
+    + r.map(w => { const d = dataRom(w.data); return `<button type="button" class="item" data-w="${esc(w.id)}" aria-current="${w.id===W.sel}">
+        <span class="margin">${d.d}<br>${d.y}</span><span><span class="t">${hl(tytul(w), f.q)}</span><span class="s">${esc(w.typ||'')}${w.typ?' · ':''}${hl(strony(w), f.q)}</span></span></button>`; }).join('')
+    + (r.length ? '' : `<div class="empty" style="margin:16px"><b>Brak wpisów dla tych filtrów</b>Wyszukiwarka pomija polskie znaki i wielkość liter. Spróbuj krótszego fragmentu nazwiska albo usuń któryś filtr.</div>`)
+    + `<p class="list-foot">Źródło: rękopiśmienna księga radziecka miasta Nowy Wiśnicz, lata 1712–1713 i 1724–1736. Imiona i nazwiska podajemy w pisowni źródła.</p>`;
+}
+function detailW(){
+  const w = W.r.find(x => x.id === W.sel) || (W.sel && D.byId[W.sel]), f = W.f, el = $('dW');
+  if (!w){ el.innerHTML = `<div class="detail-in"><div class="empty"><b>Nie wybrano wpisu</b>Wybierz wpis z listy po lewej albo zmień filtry.</div></div>`; return; }
+  const d = dataRom(w.data), i = W.r.indexOf(w);
+  const inni = new Map();
+  for (const o of w.osoby){ const k = imie(o), ix = D.osIdx[k]; if (!ix) continue;
+    for (const id of ix.wpisy) if (id !== w.id && !inni.has(id)) inni.set(id, k); }
+  const other = [...inni.entries()].map(([id,k]) => [D.byId[id],k]).sort((a,b) => (a[0].data||'').localeCompare(b[0].data||''));
+  el.innerHTML = `<div class="detail-in${W.fresh?' fresh':''}">
+    <button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>
+    <div class="head">
+      <div class="margin">${d.d}<br>${d.y}<small>skan ${esc(w.skan)}<br>${esc(w.zrodlo||'')}</small></div>
+      <div>
+        <h2>${hl(tytul(w), f.q)}</h2>
+        <div class="sub"><span class="tag">${esc(w.typ||'bez rodzaju')}</span>${w.charakter && w.charakter!==w.typ ? `<span>${esc(w.charakter)}</span>` : ''}<span class="num">${plural(w.osoby.length,'osoba','osoby','osób')}</span>${i>=0?`<span class="num">· ${i+1} z ${W.r.length}</span>`:''}</div>
+        <div class="tools">
+          <button type="button" class="btn" data-copy="link">${ICON_LINK}Kopiuj link</button>
+          <button type="button" class="btn" data-copy="cyt">${ICON_QUOTE}Kopiuj przypis</button>
+        </div>
+      </div>
+    </div>
+    ${regest(w) ? `<p class="reg">${hl(regest(w), f.q)}</p>` : `<p class="reg none">Ten wpis nie ma jeszcze regestu. Strony sprawy są wymienione poniżej.</p>`}
+    <div class="sec"><p class="lbl">Osoby we wpisie</p><div class="tbl"><table class="ptable">
+      <thead><tr><th>Osoba</th><th>Rola</th><th>Stan</th><th>Miejscowość</th><th>Uwagi</th></tr></thead><tbody>
+      ${w.osoby.map(o => { const k = imie(o), ix = D.osIdx[k]; return `<tr><td>${ix ? `<button type="button" class="link" data-os="${esc(k)}" title="Karta osoby">${hl(k, f.q)}</button>` : hl(k, f.q)}</td>
+        <td>${esc(o.rola)}</td><td>${esc(o.status||'—')}</td><td>${esc(o.miejscowosc||'—')}</td><td style="color:var(--ink-2)">${esc(o.uwagi||'')}</td></tr>`; }).join('')}
+      </tbody></table></div></div>
+    ${(w.kw||[]).length ? `<div class="sec"><p class="lbl">Słowa kluczowe</p><div class="kw">${w.kw.map(k => `<button type="button" data-kw="${esc(k)}" title="Pokaż wpisy z tym słowem">${esc(k.replace(/\.$/,''))}</button>`).join('')}</div></div>` : ''}
+    ${other.length ? `<div class="sec"><p class="lbl">Te same osoby w innych wpisach</p><ul class="mini">${other.slice(0,12).map(([x,k]) => { const dd = dataRom(x.data); return `<li><button type="button" data-goto="${esc(x.id)}">
+        <span class="margin">${dd.d} ${dd.y}</span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(k)}</span></button></li>`; }).join('')}</ul>
+        ${other.length > 12 ? `<p style="font-size:13px;color:var(--ink-2);margin:8px 0 0">i ${plural(other.length-12,'kolejny wpis','kolejne wpisy','kolejnych wpisów')}. Otwórz kartę osoby, aby zobaczyć wszystkie.</p>` : ''}</div>` : ''}
+  </div>`;
+  W.fresh = false;
+}
+function selectW(id, opts = {}){
+  W.sel = id; W.fresh = !opts.keyboard;
+  document.querySelectorAll('#lW .item').forEach(b => b.setAttribute('aria-current', String(b.dataset.w === id)));
+  detailW();
+  if (opts.scroll) document.querySelector(`#lW [data-w="${CSS.escape(id)}"]`)?.scrollIntoView({block:'nearest'});
+  if (!opts.keyboard) $('dW').scrollTop = 0;
+  if (narrow() && opts.open) $('sW').dataset.pane = 'detail';
+  if (!opts.noHash) history.replaceState(null, '', '#' + idToHash(id));
+}
+function updateW(){ readW(); filterW(); activeW(); renderListW(); detailW(); }
+
+// ================= Osoby =================
+const O = { sel:null, sort:'n', fresh:false, f:{}, r:[] };
+function readO(){ O.f = { q:$('oq').value, stat:$('ostat').value, zaw:$('ozaw').value, min:+$('omin').value || 0, fam:$('ofam').checked }; }
+function filterO(){
+  const f = O.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean);
+  O.r = D.osoby_indeks.filter(o => {
+    if (f.stat && !(o.statusy||'').split(/,\s*/).includes(f.stat)) return false;
+    if (f.zaw && !(o.zawody||[]).some(z => norm(z) === norm(f.zaw))) return false;
+    if (f.min && o.liczba_n < f.min) return false;
+    if (f.fam && !(o.rodzina||[]).length) return false;
+    if (toks.length && !toks.every(t => o._hay.includes(t))) return false;
     return true;
-  });
-  const sort=$("sortb")?$("sortb").value:"alfa";
-  if(sort==="wyst"){
-    res.sort((a,b)=>(b.liczba_n||0)-(a.liczba_n||0)||a.osoba.localeCompare(b.osoba,"pl"));
-  }else{
-    res.sort((a,b)=>a.osoba.localeCompare(b.osoba,"pl"));
+  }).sort(O.sort === 'n' ? (a,b) => b.liczba_n - a.liczba_n || a.osoba.localeCompare(b.osoba,'pl') : (a,b) => a.osoba.localeCompare(b.osoba,'pl'));
+}
+function activeO(){
+  const f = O.f, chips = [];
+  if (f.stat) chips.push(['ostat','Stan: '+f.stat]); if (f.zaw) chips.push(['ozaw','Zawód: '+f.zaw]);
+  if (f.min) chips.push(['omin','Min. '+f.min+' wpisów']); if (f.fam) chips.push(['ofam','Z rodziną']);
+  const el = $('oact'); el.hidden = !chips.length && !f.q;
+  el.innerHTML = chips.length || f.q ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
+}
+function renderListO(){
+  const f = O.f, r = O.r;
+  if (!r.find(o => o.osoba === O.sel)) O.sel = r[0]?.osoba ?? null;
+  $('lO').innerHTML = `<div class="list-head"><span class="num">${plural(r.length,'osoba','osoby','osób')}</span>
+      <button type="button" class="btn quiet" id="sortO" aria-label="Zmień kolejność">${O.sort==='n' ? 'Najczęściej w księdze' : 'Alfabetycznie'}</button></div>`
+    + r.map(o => `<button type="button" class="item p" data-o="${esc(o.osoba)}" aria-current="${o.osoba===O.sel}">
+        <span><span class="t">${hl(o.osoba, f.q)}</span><span class="s">${esc([o.statusy, (o.zawody||[]).join(', ')].filter(Boolean).join(' · ') || 'stan nieznany')}</span></span>
+        <span class="c num">${plural(o.liczba_n,'wpis','wpisy','wpisów')}</span></button>`).join('')
+    + (r.length ? '' : `<div class="empty" style="margin:16px"><b>Nikogo nie znaleziono</b>Nazwiska są w pisowni źródła, np. „Josephus” zamiast „Józef”. Spróbuj samego rdzenia nazwiska.</div>`);
+}
+function detailO(){
+  const o = D.osIdx[O.sel], el = $('dO');
+  if (!o){ el.innerHTML = `<div class="detail-in"><div class="empty"><b>Nie wybrano osoby</b>Wybierz osobę z listy.</div></div>`; return; }
+  const wp = o.wpisy.map(id => D.byId[id]).filter(Boolean).sort((a,b) => (a.data||'').localeCompare(b.data||''));
+  const role = id => { const x = D.byId[id]; const r = x.osoby.filter(p => imie(p) === o.osoba).map(p => ROLA_KR[p.rola] || p.rola); return [...new Set(r)].join(', '); };
+  const lata = wp.length ? [wp[0].data, wp[wp.length-1].data].map(x => (x||'').slice(0,4)) : [];
+  const list = a => a && a.length ? `<ul>${a.map(x => `<li>${esc(x)}</li>`).join('')}</ul>` : '';
+  const pow = (o.powiazania||[]).filter(p => p.osoba && p.osoba !== '?').sort((a,b) => b.ile - a.ile);
+  el.innerHTML = `<div class="detail-in${O.fresh?' fresh':''}">
+    <button type="button" class="btn back" data-back>${ICON_BACK}Lista osób</button>
+    <div class="head">
+      <div class="margin">${lata.length ? (lata[0]===lata[1] ? lata[0] : lata[0]+'–<br>'+lata[1]) : ''}<small>${plural(o.liczba_n,'wpis','wpisy','wpisów')}</small></div>
+      <div><h2>${esc(o.osoba)}</h2>
+        <div class="sub">${o.statusy ? `<span class="tag">${esc(o.statusy)}</span>` : '<span>stan nieznany</span>'}${(o.zawody||[]).map(z => `<span>${esc(z)}</span>`).join('')}</div>
+        <div class="tools"><button type="button" class="btn" data-copy="olink">${ICON_LINK}Kopiuj link</button></div></div>
+    </div>
+    <div class="sec"><dl class="facts">
+      <dt>Strony rękopisu</dt><dd class="num">${esc(o.strony||'—')}</dd>
+      ${(o.zawody||[]).length ? `<dt>Zawód lub urząd</dt><dd>${esc(o.zawody.join(', '))}</dd>` : ''}
+      ${(o.rodzina||[]).length ? `<dt>Rodzina</dt><dd>${list(o.rodzina)}</dd>` : ''}
+      ${(o.okolicznosci||[]).length ? `<dt>Okoliczności</dt><dd>${list(o.okolicznosci)}</dd>` : ''}
+      ${(o.uwagi||[]).length ? `<dt>Inne notatki</dt><dd>${list(o.uwagi)}</dd>` : ''}
+    </dl></div>
+    <div class="sec"><p class="lbl">Wpisy z udziałem osoby</p><ul class="mini">${wp.map(x => { const d = dataRom(x.data); return `<li><button type="button" data-goto="${esc(x.id)}">
+      <span class="margin">${d.d} ${d.y}</span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(role(x.id))}</span></button></li>`; }).join('')}</ul></div>
+    ${pow.length ? `<div class="sec"><p class="lbl">Występuje razem z</p><div class="kw">${pow.slice(0,30).map(p => D.osIdx[p.osoba] ? `<button type="button" data-os="${esc(p.osoba)}">${esc(p.osoba)} <span class="num" style="color:var(--ink-2)">×${p.ile}</span></button>` : '').join('')}</div></div>` : ''}
+  </div>`;
+  O.fresh = false;
+}
+function selectO(name, opts = {}){
+  O.sel = name; O.fresh = !opts.keyboard;
+  document.querySelectorAll('#lO .item').forEach(b => b.setAttribute('aria-current', String(b.dataset.o === name)));
+  detailO();
+  if (opts.scroll) document.querySelector(`#lO [data-o="${CSS.escape(name)}"]`)?.scrollIntoView({block:'nearest'});
+  if (!opts.keyboard) $('dO').scrollTop = 0;
+  if (narrow() && opts.open) $('sO').dataset.pane = 'detail';
+  if (!opts.noHash) history.replaceState(null, '', '#o-' + D.osIdx[name].slug);
+}
+function updateO(){ readO(); filterO(); activeO(); renderListO(); detailO(); }
+
+// ================= widoki i adresy =================
+let tab = 'wpisy', mapaLoaded = false;
+function show(t){
+  tab = t;
+  for (const v of ['wpisy','osoby','mapa']) $('v-'+v).hidden = v !== t;
+  document.querySelectorAll('[data-tab]').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  if (t === 'mapa') loadMapa();
+}
+function route(){
+  const h = decodeURIComponent(location.hash.slice(1));
+  if (h === 'osoby') { show('osoby'); $('sO').dataset.pane = 'list'; return; }
+  if (h === 'mapa') { show('mapa'); return; }
+  if (h.startsWith('w-')) { const w = D.hashW[h]; show('wpisy'); if (w) openEntry(w.id, true); return; }
+  if (h.startsWith('o-')) { const o = D.hashO[h.slice(2)]; show('osoby'); if (o) openPerson(o.osoba, true); return; }
+  show('wpisy'); $('sW').dataset.pane = 'list';
+}
+function openEntry(id, fromHash){
+  show('wpisy');
+  if (!W.r.some(w => w.id === id)) { clearW(); }
+  selectW(id, {scroll:true, open:true, noHash:fromHash});
+  if (!fromHash) history.replaceState(null, '', '#' + idToHash(id));
+}
+function openPerson(name, fromHash){
+  show('osoby');
+  if (!O.r.some(o => o.osoba === name)) { for (const k of ['oq','ostat','ozaw','omin']) $(k).value = ''; $('ofam').checked = false; updateO(); }
+  selectO(name, {scroll:true, open:true, noHash:fromHash});
+}
+function clearW(){ for (const k of ['wq','wtyp','wod','wdo','wtemat','wrola','wstat','wskan']) $(k).value = ''; $('wmulti').checked = false; W.f.kw = ''; updateW(); }
+window.addEventListener('hashchange', route);
+document.querySelectorAll('[data-tab]').forEach(a => a.addEventListener('click', e => {
+  // ponowne kliknięcie aktywnej zakładki na telefonie wraca do listy
+  if (a.dataset.tab === tab && tab !== 'mapa') { e.preventDefault(); (tab === 'wpisy' ? $('sW') : $('sO')).dataset.pane = 'list'; }
+}));
+
+// ================= zdarzenia =================
+let qT = null;
+function bindFilters(form, update){
+  form.addEventListener('input', e => { clearTimeout(qT); qT = setTimeout(update, e.target.type === 'search' ? 120 : 0); });
+}
+document.addEventListener('click', e => {
+  const t = e.target;
+  const w = t.closest('[data-w]'); if (w) { selectW(w.dataset.w, {open:true}); return; }
+  const o = t.closest('[data-o]'); if (o) { selectO(o.dataset.o, {open:true}); return; }
+  const g = t.closest('[data-goto]'); if (g) { openEntry(g.dataset.goto); return; }
+  const p = t.closest('[data-os]'); if (p) { openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
+  const k = t.closest('[data-kw]'); if (k) { W.f.kw = k.dataset.kw; filterW(); activeW(); renderListW(); detailW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw.replace(/\.$/,'') + '”'); return; }
+  const c = t.closest('[data-clear]'); if (c) {
+    const key = c.dataset.clear, inW = !!c.closest('#wact');
+    if (key === 'all') { if (inW) clearW(); else { for (const x of ['oq','ostat','ozaw','omin']) $(x).value=''; $('ofam').checked=false; updateO(); } return; }
+    if (key === 'kw') W.f.kw = ''; else if ($(key).type === 'checkbox') $(key).checked = false; else $(key).value = '';
+    inW ? updateW() : updateO(); return; }
+  if (t.closest('#sortW')) { W.sort = W.sort === 'asc' ? 'desc' : 'asc'; filterW(); renderListW(); return; }
+  if (t.closest('#sortO')) { O.sort = O.sort === 'n' ? 'a' : 'n'; filterO(); renderListO(); return; }
+  if (t.closest('[data-back]')) { (tab === 'wpisy' ? $('sW') : $('sO')).dataset.pane = 'list'; return; }
+  const m = t.closest('.mtoggle'); if (m) { const f = m.closest('.filters'), on = !f.hasAttribute('data-open'); f.toggleAttribute('data-open', on); m.setAttribute('aria-expanded', on); return; }
+  const cp = t.closest('[data-copy]'); if (cp) {
+    if (cp.dataset.copy === 'olink') { copy(pageLink('o-' + D.osIdx[O.sel].slug), 'Skopiowano link do karty osoby'); return; }
+    const x = D.byId[W.sel]; if (!x) return;
+    if (cp.dataset.copy === 'link') copy(pageLink(idToHash(x.id)), 'Skopiowano link do wpisu');
+    else copy(`Księga radziecka miasta Nowy Wiśnicz 1712–1736, wpis z ${dataSlow(x.data)}, skan ${x.skan}: ${tytul(x)} (${x.typ||'bez rodzaju'}). ${pageLink(idToHash(x.id))}`, 'Skopiowano przypis');
   }
-  return res;
+});
+// strzałki ↑↓ przechodzą po liście (bez animacji: to czynność wykonywana setki razy)
+document.addEventListener('keydown', e => {
+  if (!['ArrowDown','ArrowUp'].includes(e.key) || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || tab === 'mapa') return;
+  const step = e.key === 'ArrowDown' ? 1 : -1; e.preventDefault();
+  if (tab === 'wpisy') { const i = W.r.findIndex(w => w.id === W.sel), n = W.r[Math.max(0, Math.min(W.r.length-1, i + step))]; if (n) selectW(n.id, {keyboard:true, scroll:true}); }
+  else { const i = O.r.findIndex(o => o.osoba === O.sel), n = O.r[Math.max(0, Math.min(O.r.length-1, i + step))]; if (n) selectO(n.osoba, {keyboard:true, scroll:true}); }
+});
+
+// ================= mapa (ładowana na żądanie) =================
+function loadMapa(){
+  if (mapaLoaded) { window.WisniczMapa?.resize(); return; }
+  mapaLoaded = true;
+  const css = document.createElement('link'); css.rel = 'stylesheet'; css.href = 'mapa/maplibre.css'; document.head.appendChild(css);
+  const s = document.createElement('script'); s.src = 'https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js';
+  s.onload = () => { const m = document.createElement('script'); m.type = 'module'; m.src = 'mapa/mapa.js';
+    m.onload = () => { const wait = setInterval(() => { if (window.WisniczMapa) { clearInterval(wait); window.WisniczMapa.map.once('idle', () => $('mload').hidden = true); } }, 100); };
+    m.onerror = () => { $('mload').textContent = 'Nie udało się wczytać mapy. Odśwież stronę.'; };
+    document.body.appendChild(m); };
+  s.onerror = () => { $('mload').textContent = 'Nie udało się wczytać biblioteki mapy. Sprawdź połączenie i odśwież stronę.'; };
+  document.head.appendChild(s);
 }
 
-function plural(n,a,b,c){return n===1?a:(n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?b:c);}
-
-function draw(keep){
-  if(!VIEW)return;
-  const step=pageStep();
-  if(keep!==true)lim=step;
-  const A=VIEW==="A";
-  const out=A?filterWpisy():filterOsoby();
-  const n=out.length;
-  const word=A?plural(n,"wpis","wpisy","wpisów"):plural(n,"osoba","osoby","osób");
-  const vis=Math.min(lim,n),rest=n-vis;
-  $("cnt").textContent=`Znaleziono: ${n} ${word}`+(vis<n?` · pokazano ${vis}`:"");
-  $("more").hidden=rest<=0;
-  $("more").textContent=`Więcej · kolejne ${Math.min(step,rest)} z ${rest}`;
-  const render=A?cardWpis:cardOsoba;
-  // baner powrotu do profilu osoby — tylko w Modelu A, gdy weszliśmy z profilu konkretnej osoby
-  const bo=$("backosoba");
-  if(A && BACK_OSOBA){
-    bo.hidden=false;
-    bo.innerHTML=`<button type="button" id="backosobaBtn" class="backosobabtn">← Wróć do profilu osoby: <strong>${esc(BACK_OSOBA)}</strong></button>`;
-  }else{
-    bo.hidden=true; bo.innerHTML="";
-  }
-  $("list").innerHTML=n?out.slice(0,vis).map(render).join(""):`<div class="empty">Brak wyników dla tych kryteriów. Skróć nazwisko do początku albo wyczyść filtry.</div>`;
-}
-
-function go(){BACK_OSOBA=null;draw();}
-["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).addEventListener("input",go));
-["temat","char","pew","qt","zrodlo","stat","rokod","rokdo","multi","hasfam","haszaw"].forEach(id=>$(id).addEventListener("change",go));
-$("sortb").addEventListener("change",go);
-$("sortd").addEventListener("change",go);
-$("perpage").addEventListener("change",go);
-$("kwsel").addEventListener("change",()=>{if($("kwsel").value){$("qk").value=$("kwsel").value;}go();});
-$("zawsel").addEventListener("change",()=>{if($("zawsel").value){$("qz").value=$("zawsel").value;}go();});
-
-// przejście do profilu osoby w Modelu B — zapamiętuje poprzedni stan dla przycisku Wstecz
-function gotoOsoba(nazwa){
-  HIST.push(snapshot());
-  updateBack();
-  if(VIEW!=="B")setView("B");
-  ["qi","qm","qk","qz","qskan","qstrona"].forEach(id=>$(id).value="");
-  $("zawsel").value="";$("stat").value="";$("minw").value="";
-  $("hasfam").checked=false;$("haszaw").checked=false;
-  $("qn").value=nazwa||"";
-  draw();
-  window.scrollTo(0,0);
-}
-// przejście do KARTY SPRAWY (Model A) po id wpisu — zapamiętuje stan dla przycisku Wstecz.
-// `zOsoby` to nazwa osoby, z której profilu przyszliśmy — pokazujemy wtedy baner powrotu.
-function gotoWpis(wid, zOsoby){
-  HIST.push(snapshot());
-  updateBack();
-  BACK_OSOBA = zOsoby || null;   // kontekst: do którego profilu osoby można wrócić
-  if(VIEW!=="A")setView("A");
-  // wyczyść filtry, by wpis na pewno był na liście, i pokaż dość rekordów
-  ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).value="");
-  ["temat","char","pew","zrodlo","stat","rokod","rokdo","kwsel","zawsel"].forEach(id=>$(id).value="");
-  ["qt","multi","hasfam","haszaw"].forEach(id=>$(id).checked=false);
-  // znajdź pozycję wpisu w posortowanej liście i załaduj tyle rekordów, by był widoczny
-  const lista=filterWpisy();
-  const poz=lista.findIndex(w=>w.id===wid);
-  lim = poz>=0 ? Math.max(pageStep(), poz+1) : pageStep();
-  draw(true);
-  // przewiń do karty i podświetl ją na chwilę
-  requestAnimationFrame(()=>{
-    const el=document.getElementById(wid);
-    if(el){
-      el.scrollIntoView({block:"center"});
-      el.classList.add("highlight");
-      setTimeout(()=>el.classList.remove("highlight"),1800);
-    }else{window.scrollTo(0,0);}
-  });
-}
-$("back").addEventListener("click",()=>{
-  if(!HIST.length)return;
-  const s=HIST.pop();
-  updateBack();
-  BACK_OSOBA=null;   // powrót przez Wstecz kasuje kontekst banera
-  restore(s);   // restore sam przywraca pozycję przewinięcia zapamiętaną w migawce
+// ================= start =================
+fetch('data/data.json').then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(d => {
+  D = d; D.byId = {}; D.osIdx = {}; D.hashW = {}; D.hashO = {};
+  for (const o of D.osoby_indeks) { o.wpisy = []; o._hay = norm([o.osoba, o.statusy, (o.zawody||[]).join(' '), (o.uwagi||[]).join(' ')].join(' '));
+    let s = slug(o.osoba), k = 2; while (D.hashO[s]) s = slug(o.osoba) + '-' + k++; o.slug = s; D.hashO[s] = o; D.osIdx[o.osoba] = o; }
+  for (const w of D.wpisy) { D.byId[w.id] = w; D.hashW[idToHash(w.id)] = w;
+    w._hay = norm([w.temat, w.typ, w.charakter, w.slowa, w.nota_okol, w.nota_strony, w.streszczenie, ...w.osoby.map(o => imie(o)+' '+o.miejscowosc+' '+o.status+' '+o.uwagi)].join(' '));
+    for (const o of w.osoby) { const ix = D.osIdx[imie(o)]; if (ix && !ix.wpisy.includes(w.id)) ix.wpisy.push(w.id); } }
+  $('nW').textContent = D.wpisy.length; $('nO').textContent = D.osoby_indeks.length;
+  const typy = [...new Set(D.wpisy.map(w => w.typ).filter(t => t && t !== '-'))].sort((a,b) => a.localeCompare(b,'pl'));
+  $('wtyp').innerHTML = opts(typy, 'Wszystkie');
+  $('wtemat').innerHTML = opts([...new Set(D.wpisy.map(w => w.temat).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pl')), 'Wszystkie');
+  $('wod').innerHTML = opts(D.meta.lata, '—'); $('wdo').innerHTML = opts(D.meta.lata, '—');
+  $('wrola').innerHTML = opts(D.meta.role, 'Dowolna');
+  const stany = [...new Set(D.wpisy.flatMap(w => w.osoby.map(o => o.status)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pl'));
+  $('wstat').innerHTML = opts(stany, 'Dowolny');
+  $('ostat').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => (o.statusy||'').split(/,\s*/)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
+  $('ozaw').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => o.zawody||[]))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
+  bindFilters($('fW'), updateW); bindFilters($('fO'), updateO);
+  updateW(); updateO(); route();
+}).catch(err => {
+  $('lW').innerHTML = `<div class="empty" style="margin:16px"><b>Nie udało się wczytać bazy</b>Plik data/data.json nie odpowiada (${esc(err.message)}). Odśwież stronę za chwilę.</div>`;
 });
-// baner „Wróć do profilu osoby” — delegowany, bo przycisk jest renderowany dynamicznie
-$("backosoba").addEventListener("click",e=>{
-  if(e.target.closest("#backosobaBtn") && BACK_OSOBA){
-    const nazwa=BACK_OSOBA;
-    BACK_OSOBA=null;
-    gotoOsoba(nazwa);
-  }
-});
-
-$("list").addEventListener("click",e=>{
-  const kb=e.target.closest(".kwchip");
-  if(kb){HIST.push(snapshot());updateBack();$("qk").value=kb.dataset.kw;$("kwsel").value="";draw();window.scrollTo(0,0);return;}
-  const pl=e.target.closest(".personlink");
-  if(pl){gotoOsoba(pl.dataset.osoba);return;}
-  const zb=e.target.closest(".zawchip");
-  if(zb){HIST.push(snapshot());updateBack();$("qz").value=zb.dataset.zaw;$("zawsel").value="";draw();window.scrollTo(0,0);return;}
-  const rn=e.target.closest(".relname");
-  if(rn){gotoOsoba(rn.dataset.osoba);return;}
-  const cl=e.target.closest(".caselink");
-  if(cl){
-    // nazwa osoby, z której profilu klikamy — z pola wyszukiwania (w Modelu B to profil tej osoby)
-    const zOsoby=VIEW==="B"?($("qn").value||"").trim():"";
-    gotoWpis(cl.dataset.wpis, zOsoby);
-    return;
-  }
-});
-$("more").addEventListener("click",()=>{lim+=pageStep();draw(true);});
-$("f").addEventListener("submit",e=>e.preventDefault());
-// wybór modelu z sekcji startowej i z mini-przełącznika w panelu
-$("vA").addEventListener("click",()=>{BACK_OSOBA=null;setView("A");draw();});
-$("vB").addEventListener("click",()=>{BACK_OSOBA=null;setView("B");draw();});
-$("mvA").addEventListener("click",()=>{BACK_OSOBA=null;setView("A");draw();});
-$("mvB").addEventListener("click",()=>{BACK_OSOBA=null;setView("B");draw();});
-$("clr").addEventListener("click",()=>{
-  ["qn","qi","qm","qk","qz","qskan","qstrona","minw"].forEach(id=>$(id).value="");
-  ["temat","char","pew","zrodlo","stat","rokod","rokdo","kwsel","zawsel"].forEach(id=>$(id).value="");
-  ["qt","multi","hasfam","haszaw"].forEach(id=>$(id).checked=false);
-  draw();
-});
-$("theme").addEventListener("click",()=>{
-  const cur=document.documentElement.getAttribute("data-theme");
-  const next=cur==="dark"?"light":(cur==="light"?"":"dark");
-  if(next)document.documentElement.setAttribute("data-theme",next);else document.documentElement.removeAttribute("data-theme");
-  try{localStorage.setItem("theme",next||"");}catch(e){}
-});
-try{const t=localStorage.getItem("theme");if(t)document.documentElement.setAttribute("data-theme",t);}catch(e){}
-
-fetch("data/data.json?v="+Date.now()).then(r=>{if(!r.ok)throw new Error("data");return r.json();})
-  .then(j=>{D=j;setup();})
-  .catch(()=>{$("scope").textContent="Nie udało się wczytać danych (data/data.json). Jeśli otwierasz plik lokalnie, uruchom lokalny serwer.";});
 </script>
 </body>
 </html>

@@ -6,7 +6,19 @@ radzieckiej (akt rady miejskiej) miasta Nowy Wiśnicz z lat 1712–1736.
 Układ i sposób działania wzorowane na projekcie
 [„Zaginieni i poszukiwani w edyktach”](https://machmi-pro.github.io/zaginieni-w-edyktach/).
 
-## Dwa widoki (przełącznik u góry strony)
+## Trzy widoki (zakładki u góry strony)
+
+- **Mapa** — Nowy Wiśnicz według katastru galicyjskiego 1847/1849 na terenie z NMT 1 m
+  (rzeczywista wysokość, bez przewyższenia), z modelami domów wschodniej pierzei rynku,
+  ratuszem i kościołem. Pliki w folderze `mapa/`, ładowane dopiero po otwarciu zakładki.
+
+Wpisy i Osoby działają w układzie lista + karta: wybór z listy po lewej otwiera pełną kartę
+po prawej (na telefonie osobny ekran). Strzałki ↑↓ przechodzą po liście. Każdy wpis i każda
+osoba mają własny adres (`#w-…`, `#o-…`) i przyciski do kopiowania linku oraz przypisu.
+
+Poprzednia wersja strony jest zachowana w folderze `archiwum-2026-10/`.
+
+## Widoki danych
 
 - **Wpisy (model A)** — karta to jedna sprawa sądowa: typ, data, streszczenie,
   skan, pewność odczytu oraz rozwijana lista osób z rolami procesowymi.
@@ -22,6 +34,9 @@ identyfikator wpisu (Tabela A ↔ Tabela B).
 ```
 index.html        – cała strona (HTML + CSS + JS, bez zależności budowania)
 data/data.json    – dane wyeksportowane z pliku xlsx
+mapa/             – mapa: mapa.js, maplibre.css, teren (kafle NMT), warstwy katastru (GeoJSON),
+                    skan 1847, modele domów (GLB)
+archiwum-2026-10/ – kopia poprzedniej wersji strony
 .nojekyll         – wyłącza przetwarzanie Jekyll (serwuje folder data/)
 ```
 

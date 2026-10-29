@@ -454,7 +454,7 @@ function detailW(){
     for (const id of ix.wpisy) if (id !== w.id && !inni.has(id)) inni.set(id, k); }
   const other = [...inni.entries()].map(([id,k]) => [D.byId[id],k]).sort((a,b) => (a[0].data||'').localeCompare(b[0].data||''));
   el.innerHTML = `<div class="detail-in${W.fresh?' fresh':''}">
-    <div class="backrow"><button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>${W.fromPerson && D.osIdx[W.fromPerson] ? `<button type="button" class="btn backp" data-backp title="Wróć do karty osoby">${ICON_BACK}Wróć do: ${esc(W.fromPerson)}</button>` : ''}</div>
+    <div class="backrow"><button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>${W.fromPerson && W.fromPerson.id === w.id && D.osIdx[W.fromPerson.name] ? `<button type="button" class="btn backp" data-backp title="Wróć do karty osoby">${ICON_BACK}Wróć do: ${esc(W.fromPerson.name)}</button>` : ''}</div>
     <div class="head">
       <div class="margin">${d.d}<br>${d.y}<small>${w.strona ? `strona ${esc(w.strona)} · ` : ''}${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
       <div>
@@ -481,6 +481,7 @@ function detailW(){
   W.fresh = false;
 }
 function selectW(id, opts = {}){
+  if (W.fromPerson && W.fromPerson.id !== id) W.fromPerson = null;   // przycisk powrotu tylko na wpisie otwartym z karty osoby
   W.sel = id; W.fresh = !opts.keyboard;
   document.querySelectorAll('#lW .item').forEach(b => b.setAttribute('aria-current', String(b.dataset.w === id)));
   detailW();
@@ -571,6 +572,7 @@ function updateO(){ readO(); filterO(); activeO(); renderListO(); detailO(); }
 // ================= widoki i adresy =================
 let tab = 'wpisy', mapaLoaded = false;
 function show(t){
+  if (t !== 'wpisy') W.fromPerson = null;
   tab = t;
   for (const v of ['wpisy','osoby','mapa']) $('v-'+v).hidden = v !== t;
   document.querySelectorAll('[data-tab]').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
@@ -611,8 +613,8 @@ document.addEventListener('click', e => {
   const t = e.target;
   const w = t.closest('[data-w]'); if (w) { selectW(w.dataset.w, {open:true}); return; }
   const o = t.closest('[data-o]'); if (o) { selectO(o.dataset.o, {open:true}); return; }
-  const g = t.closest('[data-goto]'); if (g) { if (g.closest('#dO')) W.fromPerson = O.sel; openEntry(g.dataset.goto); return; }
-  if (t.closest('[data-backp]')) { const n = W.fromPerson; openPerson(n); history.replaceState(null,'','#o-'+D.osIdx[n].slug); return; }
+  const g = t.closest('[data-goto]'); if (g) { W.fromPerson = g.closest('#dO') ? {name:O.sel, id:g.dataset.goto} : null; openEntry(g.dataset.goto); return; }
+  if (t.closest('[data-backp]')) { const n = W.fromPerson.name; W.fromPerson = null; openPerson(n); history.replaceState(null,'','#o-'+D.osIdx[n].slug); return; }
   const p = t.closest('[data-os]'); if (p) { openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
   const k = t.closest('[data-kw]'); if (k) { $('wkw').value = k.dataset.kw; updateW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw + '”'); return; }
   const c = t.closest('[data-clear]'); if (c) {

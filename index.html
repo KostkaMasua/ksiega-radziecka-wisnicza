@@ -218,6 +218,21 @@ a.btn{text-decoration:none}
   .filters:not([data-open]) .more{display:none}
   .mini button{grid-template-columns:86px minmax(0,1fr)}.mini .r{grid-column:2}
 }
+/* telefon: cały panel szukania i filtrów zwijany; zwinięty zostaje sam pasek przycisku */
+.ftoggle{display:none;align-items:center;gap:10px;width:100%;height:44px;padding:0 4px;border:0;background:transparent;color:var(--ink);font-weight:500;font-size:15px;text-align:left}
+.ftoggle > svg{width:18px;height:18px;flex:none;color:var(--ink-2)}
+.ftoggle .chev{margin-left:auto;transition:transform 200ms var(--ease-out)}
+.ftoggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.ftoggle:active{transform:scale(.99)}
+.fcount{min-width:22px;height:22px;padding:0 7px;border-radius:11px;background:var(--rubric);color:var(--paper);font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+.fcount[hidden]{display:none}
+@media (max-width:860px){
+  .ftoggle{display:flex}
+  .filters:not([data-panel]){padding-block:4px}
+  .filters:not([data-panel]) > :not(.ftoggle){display:none!important}
+  .filters[data-panel]{padding-top:4px}
+}
+@media (prefers-reduced-motion:reduce){.ftoggle .chev{transition:none}}
 @media (min-width:861px){.filters .mtoggle{display:none}#fW .more{display:flex;flex-wrap:wrap;gap:10px;align-items:end;width:100%}}
 @media (max-width:640px){
   .brand{order:0}#theme{order:1;margin-left:auto}.tabs{order:2;margin-left:0;width:100%}.tabs a{flex:1;justify-content:center}
@@ -246,6 +261,7 @@ a.btn{text-decoration:none}
   <!-- ===== Wpisy ===== -->
   <section class="view" id="v-wpisy" aria-label="Wpisy">
     <form class="filters" id="fW" role="search" onsubmit="return false">
+      <button type="button" class="ftoggle" data-ftoggle aria-expanded="false" aria-controls="fW"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>Szukaj i filtruj</span><span class="fcount num" id="fWn" hidden></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <label class="field q">Szukaj osoby, tematu lub słowa<input type="search" id="wq" placeholder="np. Noskowicz, kradzież, cech" autocomplete="off"></label>
       <label class="field w-m">Słowo kluczowe<input type="search" id="wkw" list="kwlist" placeholder="np. dług, ogród" autocomplete="off"></label>
       <datalist id="kwlist"></datalist>
@@ -271,6 +287,7 @@ a.btn{text-decoration:none}
   <!-- ===== Osoby ===== -->
   <section class="view" id="v-osoby" aria-label="Osoby" hidden>
     <form class="filters" id="fO" role="search" onsubmit="return false">
+      <button type="button" class="ftoggle" data-ftoggle aria-expanded="false" aria-controls="fO"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>Szukaj i filtruj</span><span class="fcount num" id="fOn" hidden></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
       <label class="field q">Szukaj osoby<input type="search" id="oq" placeholder="Imię lub nazwisko w pisowni źródła" autocomplete="off"></label>
       <label class="field w-s">Stan<select id="ostat"></select></label>
       <label class="field w-m">Zawód lub urząd<select id="ozaw"></select></label>
@@ -426,14 +443,22 @@ function filterW(){
   r.sort((a,b) => (a.data||'').localeCompare(b.data||'') * (W.sort === 'desc' ? -1 : 1) || a.id.localeCompare(b.id));
   W.r = r;
 }
+// liczba aktywnych filtrów na zwiniętym pasku (telefon)
+function fcount(form, n){ const b = $(form + 'n'); b.hidden = !n; b.textContent = n; b.setAttribute('aria-label', n ? plural(n,'aktywny filtr','aktywne filtry','aktywnych filtrów') : ''); }
+function setPanel(form, open){
+  const f = $(form); f.toggleAttribute('data-panel', open); f.querySelector('[data-ftoggle]').setAttribute('aria-expanded', open);
+  try { localStorage.setItem('panel-' + form, open ? '1' : '0'); } catch(_){}
+}
 function activeW(){
   const f = W.f, chips = [];
+  if (f.q.trim()) chips.push(['wq','Szukaj: '+f.q.trim()]);
   if (f.typ) chips.push(['wtyp','Rodzaj: '+f.typ]); if (f.temat) chips.push(['wtemat','Temat: '+f.temat]);
   if (f.od) chips.push(['wod','Od '+f.od]); if (f.do) chips.push(['wdo','Do '+f.do]);
   if (f.rola) chips.push(['wrola','Rola: '+f.rola]); if (f.stat) chips.push(['wstat','Stan: '+f.stat]);
   if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); if (f.kw) chips.push(['wkw','Słowo: '+normKw(f.kw)]);
-  const el = $('wact'); el.hidden = !chips.length && !f.q;
-  el.innerHTML = chips.length || f.q ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
+  fcount('fW', chips.length);
+  const el = $('wact'); el.hidden = !chips.length;
+  el.innerHTML = chips.length ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
 }
 function renderListW(){
   const f = W.f, r = W.r;
@@ -508,10 +533,12 @@ function filterO(){
 }
 function activeO(){
   const f = O.f, chips = [];
+  if (f.q.trim()) chips.push(['oq','Szukaj: '+f.q.trim()]);
   if (f.stat) chips.push(['ostat','Stan: '+f.stat]); if (f.zaw) chips.push(['ozaw','Zawód: '+f.zaw]);
   if (f.min) chips.push(['omin','Min. '+f.min+' wpisów']); if (f.fam) chips.push(['ofam','Z rodziną']);
-  const el = $('oact'); el.hidden = !chips.length && !f.q;
-  el.innerHTML = chips.length || f.q ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
+  fcount('fO', chips.length);
+  const el = $('oact'); el.hidden = !chips.length;
+  el.innerHTML = chips.length ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
 }
 function renderListO(){
   const f = O.f, r = O.r;
@@ -625,6 +652,7 @@ document.addEventListener('click', e => {
   if (t.closest('#sortW')) { W.sort = W.sort === 'asc' ? 'desc' : 'asc'; filterW(); renderListW(); return; }
   if (t.closest('#sortO')) { O.sort = O.sort === 'n' ? 'a' : 'n'; filterO(); renderListO(); return; }
   if (t.closest('[data-back]')) { (tab === 'wpisy' ? $('sW') : $('sO')).dataset.pane = 'list'; return; }
+  const ft = t.closest('[data-ftoggle]'); if (ft) { const f = ft.closest('.filters'), open = !f.hasAttribute('data-panel'); setPanel(f.id, open); if (open) f.querySelector('input[type=search]')?.focus({preventScroll:true}); return; }
   const m = t.closest('.mtoggle'); if (m) { const f = m.closest('.filters'), on = !f.hasAttribute('data-open'); f.toggleAttribute('data-open', on); m.setAttribute('aria-expanded', on); return; }
   const cp = t.closest('[data-copy]'); if (cp) {
     if (cp.dataset.copy === 'olink') { copy(pageLink('o-' + D.osIdx[O.sel].slug), 'Skopiowano link do karty osoby'); return; }
@@ -678,6 +706,7 @@ fetch('data/data.json').then(r => { if (!r.ok) throw new Error(r.status); return
   $('ostat').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => (o.statusy||'').split(/,\s*/)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
   $('ozaw').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => o.zawody||[]))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
   bindFilters($('fW'), updateW); bindFilters($('fO'), updateO);
+  for (const f of ['fW','fO']) { let v = null; try { v = localStorage.getItem('panel-' + f); } catch(_){} setPanel(f, v === '1'); }
   updateW(); updateO(); route();
 }).catch(err => {
   $('lW').innerHTML = `<div class="empty" style="margin:16px"><b>Nie udało się wczytać bazy</b>Plik data/data.json nie odpowiada (${esc(err.message)}). Odśwież stronę za chwilę.</div>`;

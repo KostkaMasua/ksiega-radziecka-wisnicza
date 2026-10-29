@@ -431,16 +431,22 @@ const map=new maplibregl.Map({container:'map',hash:false,maxPitch:80,attribution
       bud:{type:'geojson',data:U('budynki.geojson'),attribution:'Kataster galicyjski 1847/1849 (skan RCIN), wektoryzacja'},
       gr:{type:'geojson',data:U('granica.geojson')},
       wa:{type:'geojson',data:U('warstwice.geojson')},
+      // Stary Wiśnicz 1847, arkusz IV (zamek, folwark, browar): wycinek dopasowany do skanu Nowego Wiśnicza
+      // po punktach wspólnej granicy (potok Leksandrówka, most, kamień graniczny); błąd 3–7 m.
+      skansw:{type:'image',url:U('skan1847_stary_wisnicz.webp'),coordinates:[[20.4643638,49.9229954],[20.4728558,49.9232917],[20.473574,49.914754],[20.465082,49.9144578]]},
+      budsw:{type:'geojson',data:U('stary_wisnicz_budynki.geojson'),attribution:'Kataster galicyjski Stary Wiśnicz 1847 (skan RCIN)'},
       skan:{type:'image',url:U('skan1847.webp'),coordinates:[[20.42585895250316,49.93122841607524],[20.476156523576297,49.93122841607524],[20.476156523576297,49.89768973167475],[20.42585895250316,49.89768973167475]]}
     },
     layers:[
       {id:'bg',type:'background',paint:{'background-color':'#ece6d6'}},
       {id:'obs-f',type:'fill',source:'obs',paint:{'fill-color':match,'fill-opacity':0.95}},
       {id:'skan',type:'raster',source:'skan',layout:{visibility:'none'},paint:{'raster-opacity':1,'raster-fade-duration':0}},
+      {id:'skan-sw',type:'raster',source:'skansw',layout:{visibility:'none'},paint:{'raster-opacity':1,'raster-fade-duration':0}},
       {id:'hs',type:'hillshade',source:'demh',paint:{'hillshade-exaggeration':0.55,'hillshade-shadow-color':'#5b4a36','hillshade-highlight-color':'#fffaf0','hillshade-accent-color':'#7a6650'}},
       {id:'obs-l',type:'line',source:'obs',paint:{'line-color':'#6b6257','line-width':['interpolate',['linear'],['zoom'],13,0.2,17,0.9],'line-opacity':0.8}},
       {id:'wa',type:'line',source:'wa',paint:{'line-color':'#8a5a2b','line-width':['case',['==',['%',['get','h'],10],0],1.1,0.45],'line-opacity':0.55}},
       {id:'gr',type:'line',source:'gr',paint:{'line-color':'#7a1c1c','line-width':2.2,'line-dasharray':[4,1.5,1,1.5]}},
+      {id:'bud-sw',type:'fill',source:'budsw',paint:{'fill-color':matchB,'fill-opacity':0.92,'fill-outline-color':'#4a2a20'}},
       {id:'bud-flat',type:'fill',source:'bud',paint:{'fill-color':matchB,'fill-opacity':['interpolate',['linear'],['zoom'],14,0.9,15.5,0.25],'fill-outline-color':'#4a2a20'}}
     ]},
   ...HOME});
@@ -526,12 +532,14 @@ const $=id=>document.getElementById(id);
 function setBase(skan){
   $('b-skan').setAttribute('aria-pressed',skan);$('b-styl').setAttribute('aria-pressed',!skan);
   map.setLayoutProperty('skan','visibility',skan?'visible':'none');
+  map.setLayoutProperty('skan-sw','visibility',skan?'visible':'none');
+  map.setPaintProperty('bud-sw','fill-opacity',skan?0:0.92);
   map.setPaintProperty('obs-f','fill-opacity',skan?0:0.95);
   map.setPaintProperty('obs-l','line-opacity',skan?0.0:0.8);
   map.setPaintProperty('hs','hillshade-exaggeration',skan?0.35:0.55);
 }
 $('b-skan').onclick=()=>setBase(true);$('b-styl').onclick=()=>setBase(false);
-$('bh').onchange=e=>{if(BR)map.setLayoutProperty('bryly','visibility',e.target.checked?'visible':'none');if(MD)map.setLayoutProperty('modele','visibility',e.target.checked?'visible':'none');map.setPaintProperty('bud-flat','fill-opacity',e.target.checked?['interpolate',['linear'],['zoom'],14,0.9,15.5,0.25]:0.95);};
+$('bh').onchange=e=>{map.setLayoutProperty('bud-sw','visibility',e.target.checked?'visible':'none');if(BR)map.setLayoutProperty('bryly','visibility',e.target.checked?'visible':'none');if(MD)map.setLayoutProperty('modele','visibility',e.target.checked?'visible':'none');map.setPaintProperty('bud-flat','fill-opacity',e.target.checked?['interpolate',['linear'],['zoom'],14,0.9,15.5,0.25]:0.95);};
 $('wa').onchange=e=>map.setLayoutProperty('wa','visibility',e.target.checked?'visible':'none');
 $('v3d').onclick=()=>map.easeTo({pitch:62,bearing:map.getBearing()||-28,duration:900});
 $('v2d').onclick=()=>map.easeTo({pitch:0,bearing:0,duration:900});
@@ -556,9 +564,13 @@ map.on('click',e=>{
   if(MD)MD.select(-1);
   if(BR&&map.getLayoutProperty('bryly','visibility')!=='none'){const i=BR.pick(e.point.x,e.point.y);if(i>=0){BR.select(i);kartaBud(i);return;}}
   if(BR)BR.select(-1);
+  const fs=map.getPaintProperty('bud-sw','fill-opacity')>0&&map.getLayoutProperty('bud-sw','visibility')!=='none'?map.queryRenderedFeatures(e.point,{layers:['bud-sw']})[0]:null;
+  if(fs){const q=fs.properties;show(q.nazwa||(q.klasa==='budynek_murowany'?'Budynek murowany':'Budynek drewniany'),
+    [['Powierzchnia',fmt(q.p)+' m²'],['Gmina katastralna','Stary Wiśnicz'],['Źródło',q.zrodlo]],
+    q.nazwa==='Zamek'||q.nazwa==='Fortyfikacje bastionowe zamku'?'Zamek Kmitów i Lubomirskich na Górze Zamkowej. Obrys z mapy katastralnej 1847; fortyfikacje bastionowe z lat 1615–1621.':'Obrys z mapy katastralnej Starego Wiśnicza 1847.');return;}
   const f=map.queryRenderedFeatures(e.point,{layers:['obs-f']})[0]; if(!f) return;
   show(KL[f.properties.k]?KL[f.properties.k][0]:'Działka',[['Powierzchnia',fmt(f.properties.p)+' m²'],['Morgi (1 mórg = 5755 m²)',(f.properties.p/5754.64).toFixed(2).replace('.',',')]],
   'Numer tej działki nie jest jeszcze opisany. Po uzupełnieniu numeracji pojawią się tu wpisy z ksiąg, które jej dotyczą.');});
-for(const l of ['obs-f']){map.on('mouseenter',l,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',l,()=>map.getCanvas().style.cursor='');}
+for(const l of ['obs-f','bud-sw']){map.on('mouseenter',l,()=>map.getCanvas().style.cursor='pointer');map.on('mouseleave',l,()=>map.getCanvas().style.cursor='');}
 
 window.WisniczMapa={map,resize:()=>map.resize()};

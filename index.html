@@ -24,6 +24,7 @@
   --f-text:"Alegreya", Georgia, "Times New Roman", serif;
   --f-ui:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
   --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --datecol:82px;   /* kolumna daty w listach: najdłuższa data („28 VIII 1724”) w jednej linii */
   --gut-l:max(16px, env(safe-area-inset-left, 0px)); --gut-r:max(16px, env(safe-area-inset-right, 0px));
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -101,7 +102,7 @@ a.btn{text-decoration:none}
 .list{overflow:auto;border-right:1px solid var(--rule);background:var(--sheet);overscroll-behavior:contain}
 .list-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--sheet-2);padding:4px 8px 4px 16px;font-size:12.5px;font-weight:600;color:var(--ink-2);border-bottom:1px solid var(--rule)}
 .list-head .btn{height:30px;font-size:12.5px;padding:0 8px}
-.item{display:grid;grid-template-columns:76px minmax(0,1fr);gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 16px;color:var(--ink)}
+.item{display:grid;grid-template-columns:var(--datecol) minmax(0,1fr);gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--line);background:transparent;padding:10px 16px;color:var(--ink)}
 .item.p{grid-template-columns:minmax(0,1fr) auto}
 .item .t{display:block;font:500 15.5px/1.3 var(--f-text)}
 .item .s{display:block;font-size:12.5px;color:var(--ink-2);margin-top:2px}
@@ -114,6 +115,7 @@ a.btn{text-decoration:none}
 
 /* znak rozpoznawczy: rubrykowany margines z datą (miesiąc rzymski, jak w regestach) */
 .margin{font:500 15px/1.2 var(--f-text);color:var(--rubric);font-variant-numeric:oldstyle-nums proportional-nums}
+.dt{white-space:nowrap}
 .margin small{display:block;font:400 12px/1.35 var(--f-ui);color:var(--ink-3);font-variant-numeric:tabular-nums;margin-top:3px}
 
 .detail{overflow:auto;padding-block:28px 64px;padding-left:max(40px, var(--gut-l));padding-right:max(40px, var(--gut-r));overscroll-behavior:contain}
@@ -123,7 +125,7 @@ a.btn{text-decoration:none}
 .back{display:none}
 .backrow{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
 @media (min-width:861px){.backrow:not(:has(.backp)){display:none}}
-.head{display:grid;grid-template-columns:132px minmax(0,1fr);gap:24px;align-items:start;padding-bottom:18px;border-bottom:3px double var(--rubric-rule)}
+.head{display:grid;grid-template-columns:minmax(132px,max-content) minmax(0,1fr);gap:24px;align-items:start;padding-bottom:18px;border-bottom:3px double var(--rubric-rule)}
 .head .margin{font-size:23px;line-height:1.15}
 .head h2{margin:0;font:500 31px/1.15 var(--f-text);letter-spacing:-.01em;text-wrap:balance}
 .sub{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;color:var(--ink-2);font-size:14px}
@@ -147,7 +149,7 @@ a.btn{text-decoration:none}
 .mini{list-style:none;margin:0;padding:0}
 .mini li{border-top:1px solid var(--line)}
 .mini li:last-child{border-bottom:1px solid var(--line)}
-.mini button{display:grid;grid-template-columns:110px minmax(0,1fr) auto;gap:14px;width:100%;text-align:left;border:0;background:transparent;padding:9px 6px;color:var(--ink);align-items:baseline}
+.mini button{display:grid;grid-template-columns:var(--datecol) minmax(0,1fr) auto;gap:14px;width:100%;text-align:left;border:0;background:transparent;padding:9px 6px;color:var(--ink);align-items:baseline}
 @media (hover:hover) and (pointer:fine){.mini button:hover{background:var(--sheet)}}
 .mini .t{font:500 16px/1.3 var(--f-text)}
 .mini .r{font-size:12.5px;color:var(--ink-2);white-space:nowrap}
@@ -216,7 +218,7 @@ a.btn{text-decoration:none}
   .head .margin{font-size:19px}.head h2{font-size:25px}
   .filters .w-s,.filters .w-m{flex:1 1 140px}
   .filters:not([data-open]) .more{display:none}
-  .mini button{grid-template-columns:86px minmax(0,1fr)}.mini .r{grid-column:2}
+  .mini button{grid-template-columns:var(--datecol) minmax(0,1fr)}.mini .r{grid-column:2}
 }
 /* telefon: cały panel szukania i filtrów zwijany; zwinięty zostaje sam pasek przycisku */
 .ftoggle{display:none;align-items:center;gap:10px;width:100%;height:44px;padding:0 4px;border:0;background:transparent;color:var(--ink);font-weight:500;font-size:15px;text-align:left}
@@ -466,7 +468,7 @@ function renderListW(){
   $('lW').innerHTML = `<div class="list-head"><span class="num" id="cntW">${plural(r.length,'wpis','wpisy','wpisów')}</span>
       <button type="button" class="btn quiet" id="sortW" aria-label="Zmień kolejność">${W.sort==='asc' ? 'Od najstarszych' : 'Od najnowszych'}</button></div>`
     + r.map(w => { const d = dataRom(w.data); return `<button type="button" class="item" data-w="${esc(w.id)}" aria-current="${w.id===W.sel}">
-        <span class="margin">${d.d}<br>${d.y}</span><span><span class="t">${hl(tytul(w), f.q)}</span><span class="s">${esc(w.typ||'')}${w.typ?' · ':''}${hl(strony(w), f.q)}</span></span></button>`; }).join('')
+        <span class="margin"><span class="dt">${d.d} ${d.y}</span></span><span><span class="t">${hl(tytul(w), f.q)}</span><span class="s">${esc(w.typ||'')}${w.typ?' · ':''}${hl(strony(w), f.q)}</span></span></button>`; }).join('')
     + (r.length ? '' : `<div class="empty" style="margin:16px"><b>Brak wpisów dla tych filtrów</b>Wyszukiwarka pomija polskie znaki i wielkość liter. Spróbuj krótszego fragmentu nazwiska albo usuń któryś filtr.</div>`)
     + `<p class="list-foot">Źródło: rękopiśmienna księga radziecka miasta Nowy Wiśnicz, lata 1712–1713 i 1724–1736. Imiona i nazwiska podajemy w pisowni źródła.</p>`;
 }
@@ -481,7 +483,7 @@ function detailW(){
   el.innerHTML = `<div class="detail-in${W.fresh?' fresh':''}">
     <div class="backrow"><button type="button" class="btn back" data-back>${ICON_BACK}Lista wpisów</button>${W.fromPerson && W.fromPerson.id === w.id && D.osIdx[W.fromPerson.name] ? `<button type="button" class="btn backp" data-backp title="Wróć do karty osoby">${ICON_BACK}Wróć do: ${esc(W.fromPerson.name)}</button>` : ''}</div>
     <div class="head">
-      <div class="margin">${d.d}<br>${d.y}<small>${w.strona ? `strona ${esc(w.strona)} · ` : ''}${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
+      <div class="margin"><span class="dt">${d.d} ${d.y}</span><small>${w.strona ? `strona ${esc(w.strona)} · ` : ''}${su ? `<a href="${su}" target="_blank" rel="noopener" title="Otwórz skan ${esc(w.skan)} w Skanotece Genealodzy.pl">skan ${esc(w.skan)}</a>` : `skan ${esc(w.skan)}`}<br>${esc(w.zrodlo||'')}</small></div>
       <div>
         <h2>${hl(tytul(w), f.q)}</h2>
         <div class="sub"><span class="tag">${esc(w.typ||'bez rodzaju')}</span>${w.charakter && w.charakter!==w.typ ? `<span>${esc(w.charakter)}</span>` : ''}<span class="num">${plural(w.osoby.length,'osoba','osoby','osób')}</span>${i>=0?`<span class="num">· ${i+1} z ${W.r.length}</span>`:''}</div>
@@ -500,7 +502,7 @@ function detailW(){
       </tbody></table></div></div>
     ${(w.kw||[]).length ? `<div class="sec"><p class="lbl">Słowa kluczowe</p><div class="kw">${w.kw.map(k => `<button type="button" data-kw="${esc(k)}" title="Pokaż wpisy z tym słowem">${esc(k)}</button>`).join('')}</div></div>` : ''}
     ${other.length ? `<div class="sec"><p class="lbl">Te same osoby w innych wpisach</p><ul class="mini">${other.slice(0,12).map(([x,k]) => { const dd = dataRom(x.data); return `<li><button type="button" data-goto="${esc(x.id)}">
-        <span class="margin">${dd.d} ${dd.y}</span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(k)}</span></button></li>`; }).join('')}</ul>
+        <span class="margin"><span class="dt">${dd.d} ${dd.y}</span></span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(k)}</span></button></li>`; }).join('')}</ul>
         ${other.length > 12 ? `<p style="font-size:13px;color:var(--ink-2);margin:8px 0 0">i ${plural(other.length-12,'kolejny wpis','kolejne wpisy','kolejnych wpisów')}. Otwórz kartę osoby, aby zobaczyć wszystkie.</p>` : ''}</div>` : ''}
   </div>`;
   W.fresh = false;
@@ -558,14 +560,14 @@ function detailO(){
   const lata = wp.length ? [wp[0].data, wp[wp.length-1].data].map(x => (x||'').slice(0,4)) : [];
   // notatka o osobie: {t: tekst, w: [id wpisów]} — każda ma odnośnik do sprawy, z której pochodzi
   const sprawa = id => { const x = D.byId[id]; if (!x) return ''; const d = dataRom(x.data);
-    return `<button type="button" class="src" data-goto="${esc(id)}" title="Otwórz wpis">${d.d} ${d.y} · ${esc(tytul(x))}</button>`; };
+    return `<button type="button" class="src" data-goto="${esc(id)}" title="Otwórz wpis"><span class="dt">${d.d} ${d.y}</span> · ${esc(tytul(x))}</button>`; };
   const list = a => a && a.length ? `<ul class="notes">${a.map(x => { const n = typeof x === 'string' ? {t:x, w:[]} : x;
     return `<li><span>${esc(n.t)}</span>${(n.w||[]).length ? `<span class="srcs">${n.w.map(sprawa).join('')}</span>` : ''}</li>`; }).join('')}</ul>` : '';
   const pow = (o.powiazania||[]).filter(p => p.osoba && p.osoba !== '?').sort((a,b) => b.ile - a.ile);
   el.innerHTML = `<div class="detail-in${O.fresh?' fresh':''}">
     <button type="button" class="btn back" data-back>${ICON_BACK}Lista osób</button>
     <div class="head">
-      <div class="margin">${lata.length ? (lata[0]===lata[1] ? lata[0] : lata[0]+'–<br>'+lata[1]) : ''}<small>${plural(o.liczba_n,'wpis','wpisy','wpisów')}</small></div>
+      <div class="margin"><span class="dt">${lata.length ? (lata[0]===lata[1] ? lata[0] : lata[0]+'–'+lata[1]) : ''}</span><small>${plural(o.liczba_n,'wpis','wpisy','wpisów')}</small></div>
       <div><h2>${esc(o.osoba)}</h2>
         <div class="sub">${o.statusy ? `<span class="tag">${esc(o.statusy)}</span>` : '<span>stan nieznany</span>'}${(o.zawody||[]).map(z => `<span>${esc(z)}</span>`).join('')}</div>
         <div class="tools"><button type="button" class="btn" data-copy="olink">${ICON_LINK}Kopiuj link</button></div></div>
@@ -578,7 +580,7 @@ function detailO(){
       ${(o.uwagi||[]).length ? `<dt>Inne notatki</dt><dd>${list(o.uwagi)}</dd>` : ''}
     </dl></div>
     <div class="sec"><p class="lbl">Wpisy z udziałem osoby</p><ul class="mini">${wp.map(x => { const d = dataRom(x.data); return `<li><button type="button" data-goto="${esc(x.id)}">
-      <span class="margin">${d.d} ${d.y}</span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(role(x.id))}</span></button></li>`; }).join('')}</ul></div>
+      <span class="margin"><span class="dt">${d.d} ${d.y}</span></span><span class="t">${esc(tytul(x))}</span><span class="r">${esc(role(x.id))}</span></button></li>`; }).join('')}</ul></div>
     ${pow.length ? `<div class="sec"><p class="lbl">Występuje razem z</p><ul class="notes with">${pow.slice(0,30).filter(p => D.osIdx[p.osoba]).map(p => `<li>
       <button type="button" class="link" data-os="${esc(p.osoba)}" title="Karta osoby">${esc(p.osoba)}</button>
       <span class="srcs">${(p.sprawy||[]).map(s => sprawa(s.id)).join('')}</span></li>`).join('')}</ul></div>` : ''}

@@ -422,6 +422,8 @@ const match=['match',['get','k']];for(const k in KL){match.push(k,KL[k][1]);}mat
 const matchB=['match',['get','klasa'],'budynek_murowany','#d66e78','#f0cd5a'];
 const HOME={center:[20.4618,49.9135],zoom:16.2,pitch:62,bearing:-28};
 
+// płaski rzut budynków Starego Wiśnicza (zamek, folwark, browar) – przygasa, gdy widać modele 3D
+const SW_OP=['interpolate',['linear'],['zoom'],14,0.92,15.5,0.3];
 const map=new maplibregl.Map({container:'map',hash:false,maxPitch:80,attributionControl:{compact:true},
   style:{version:8,
     sources:{
@@ -446,7 +448,7 @@ const map=new maplibregl.Map({container:'map',hash:false,maxPitch:80,attribution
       {id:'obs-l',type:'line',source:'obs',paint:{'line-color':'#6b6257','line-width':['interpolate',['linear'],['zoom'],13,0.2,17,0.9],'line-opacity':0.8}},
       {id:'wa',type:'line',source:'wa',paint:{'line-color':'#8a5a2b','line-width':['case',['==',['%',['get','h'],10],0],1.1,0.45],'line-opacity':0.55}},
       {id:'gr',type:'line',source:'gr',paint:{'line-color':'#7a1c1c','line-width':2.2,'line-dasharray':[4,1.5,1,1.5]}},
-      {id:'bud-sw',type:'fill',source:'budsw',paint:{'fill-color':matchB,'fill-opacity':0.92,'fill-outline-color':'#4a2a20'}},
+      {id:'bud-sw',type:'fill',source:'budsw',paint:{'fill-color':matchB,'fill-opacity':SW_OP,'fill-outline-color':'#4a2a20'}},
       {id:'bud-flat',type:'fill',source:'bud',paint:{'fill-color':matchB,'fill-opacity':['interpolate',['linear'],['zoom'],14,0.9,15.5,0.25],'fill-outline-color':'#4a2a20'}}
     ]},
   ...HOME});
@@ -456,7 +458,7 @@ let BR=null, BD=null, MD=null;
 
 // ===== Modele GLB budynków (wspólny układ: punkt 0 = narożnik NW działki 210) =====
 // Punkt 0: PL-1992 E 604 996,76 / N 228 514,50, H 280,90 m; oś X modeli: azymut 92,02° w siatce PL-1992 = 93,14° względem północy geograficznej.
-const MODELE={origin:[20.462943201888258,49.91471363672642],H0:280.90,azymut:93.14,wersja:'202610271000',
+const MODELE={origin:[20.462943201888258,49.91471363672642],H0:280.90,azymut:93.14,wersja:'202610291300',
   lista:[
     {plik:'lekki',dz:'210',nazwa:'Zajazd'},
     {plik:'dom211_lekki',dz:'211',nazwa:'Dom piekarza'},
@@ -465,7 +467,16 @@ const MODELE={origin:[20.462943201888258,49.91471363672642],H0:280.90,azymut:93.
     {plik:'dom17_lekki',dz:'17',nazwa:'Dom'},
     {plik:'dom16_lekki',dz:'16',nazwa:'Dom'},
     {plik:'dom15_lekki',dz:'15',nazwa:'Dom'},
-    {plik:'dom14_lekki',dz:'14',nazwa:'Dom'}]};
+    {plik:'dom14_lekki',dz:'14',nazwa:'Dom'},
+    {plik:'zamek_ruina_lekki',zamek:'ruina',nazwa:'Zamek',stan:'ruina po pożarze 1831 r. (1847–1863)',
+      opis:'Zamek Kmitów i Lubomirskich: korpus bez dachów, baszta Bony z cebulastym hełmem, wieże z dachami, Kmitówka i ryzalit bramny. Przełącznik „Zamek” w panelu pokazuje stan z ok. 1720–1736.'},
+    {plik:'zamek_caly_lekki',zamek:'caly',nazwa:'Zamek',stan:'rezydencja Lubomirskich ok. 1720–1736',
+      opis:'Zamek Kmitów i Lubomirskich przed pożarem 1831 r.: korpus z dziedzińcem pod dachówką, cztery wieże, ryzalit bramny, kaplica z sygnaturką, Kmitówka i loggia zachodnia na trzech arkadach.'},
+    {plik:'fortyfikacje_lekki',nazwa:'Fortyfikacje bastionowe zamku',stan:'pięć bastionów i brama z 1621 r.',
+      opis:'Mur obwodowy z kordonem i przedpiersiem, zabudowana kurtyna zachodnia, pawilony na trzech bastionach, nadszaniec i brama wjazdowa z 1621 r. z herbem Szreniawa.'},
+    {plik:'folwark_lekki',nazwa:'Folwark zamkowy',stan:'według katastru 1847 r.',
+      opis:'Stodoła, obora, stajnia z wozownią, owczarnia, chlewy, szopa, drewutnia i murowany czworobok folwarczny wokół podwórza.'}],
+  zamek:(()=>{try{return localStorage.getItem('zamek-wariant')||'ruina';}catch(e){return 'ruina';}})()};
 // Model GLB: binarny plik .glb (GitHub Pages); gdy serwer go nie podaje, wersja tekstowa base64 (.txt).
 function wczytajGLB(plik){
   return fetch(U('modele/'+plik+'.glb?v='+MODELE.wersja)).then(r=>{if(!r.ok)throw new Error(r.status);return r.arrayBuffer();})
@@ -483,7 +494,7 @@ function modeleWarstwa(map,o0ll){
     root.matrix.makeBasis(new THREE.Vector3(Math.sin(a),Math.cos(a),0),new THREE.Vector3(0,0,1),new THREE.Vector3(Math.cos(a),-Math.sin(a),0));
     root.matrix.setPosition(dE,dN,ex*MODELE.H0); root.matrixWorldNeedsUpdate=true;
     // przy przewyższeniu terenu każdy budynek podnosi się razem z gruntem pod nim (bryła nie jest rozciągana)
-    for(const w of wpisy) if(w.obj) w.obj.position.y=(ex-1)*w.grunt;   // punkt 0 jest już na wysokości ex·H0
+    for(const w of wpisy) if(w.obj){ w.obj.position.y=(ex-1)*w.grunt; w.obj.visible=!w.zamek||w.zamek===MODELE.zamek; }   // punkt 0 jest już na wysokości ex·H0
   }
   function podswietl(i,on){const w=wpisy[i]; if(!w||!w.obj) return;
     w.obj.traverse(o=>{if(o.isMesh&&o.material&&o.material.emissive){o.material.emissive.set(on?0x4a3418:0x000000);}});}
@@ -515,11 +526,14 @@ function modeleWarstwa(map,o0ll){
   L.setExaggeration=v=>{ex=v;if(root){ustaw();map.triggerRepaint();}};
   L.select=i=>{if(sel>=0)podswietl(sel,false);sel=i;if(i>=0)podswietl(i,true);map.triggerRepaint();};
   L.wpis=i=>wpisy[i];
+  L.setZamek=v=>{MODELE.zamek=v;try{localStorage.setItem('zamek-wariant',v);}catch(e){} if(root){ustaw();map.triggerRepaint();}
+    if(sel>=0&&wpisy[sel]&&wpisy[sel].zamek&&wpisy[sel].zamek!==v){podswietl(sel,false);sel=-1;}};
   L.pick=(px,py)=>{if(!camera)return -1;
     const c=map.getCanvas(),nx=px/c.clientWidth*2-1,ny=-(py/c.clientHeight)*2+1,inv=camera.projectionMatrixInverse;
     const A4=new THREE.Vector4(nx,ny,-1,1).applyMatrix4(inv),B4=new THREE.Vector4(nx,ny,1,1).applyMatrix4(inv);
     const A=new THREE.Vector3(A4.x/A4.w,A4.y/A4.w,A4.z/A4.w),B=new THREE.Vector3(B4.x/B4.w,B4.y/B4.w,B4.z/B4.w);
-    const hit=new THREE.Raycaster(A,B.clone().sub(A).normalize(),0,A.distanceTo(B)).intersectObject(root,true)[0];
+    const widoczny=o=>{for(let p=o;p;p=p.parent) if(!p.visible) return false; return true;};
+    const hit=new THREE.Raycaster(A,B.clone().sub(A).normalize(),0,A.distanceTo(B)).intersectObject(root,true).find(h=>widoczny(h.object));
     return hit?hit.object.userData.idx:-1;};
   return L;
 }
@@ -533,12 +547,14 @@ function setBase(skan){
   $('b-skan').setAttribute('aria-pressed',skan);$('b-styl').setAttribute('aria-pressed',!skan);
   map.setLayoutProperty('skan','visibility',skan?'visible':'none');
   map.setLayoutProperty('skan-sw','visibility',skan?'visible':'none');
-  map.setPaintProperty('bud-sw','fill-opacity',skan?0:0.92);
+  map.setPaintProperty('bud-sw','fill-opacity',skan?0:SW_OP);
   map.setPaintProperty('obs-f','fill-opacity',skan?0:0.95);
   map.setPaintProperty('obs-l','line-opacity',skan?0.0:0.8);
   map.setPaintProperty('hs','hillshade-exaggeration',skan?0.35:0.55);
 }
 $('b-skan').onclick=()=>setBase(true);$('b-styl').onclick=()=>setBase(false);
+function setZamek(v){$('z-ruina').setAttribute('aria-pressed',v==='ruina');$('z-caly').setAttribute('aria-pressed',v==='caly');if(MD)MD.setZamek(v);else MODELE.zamek=v;}
+$('z-ruina').onclick=()=>setZamek('ruina');$('z-caly').onclick=()=>setZamek('caly');setZamek(MODELE.zamek);
 $('bh').onchange=e=>{map.setLayoutProperty('bud-sw','visibility',e.target.checked?'visible':'none');if(BR)map.setLayoutProperty('bryly','visibility',e.target.checked?'visible':'none');if(MD)map.setLayoutProperty('modele','visibility',e.target.checked?'visible':'none');map.setPaintProperty('bud-flat','fill-opacity',e.target.checked?['interpolate',['linear'],['zoom'],14,0.9,15.5,0.25]:0.95);};
 $('wa').onchange=e=>map.setLayoutProperty('wa','visibility',e.target.checked?'visible':'none');
 $('v3d').onclick=()=>map.easeTo({pitch:62,bearing:map.getBearing()||-28,duration:900});
@@ -560,14 +576,15 @@ function kartaBud(i){const d=BD.b[i];const [,,,L,W,zmin,zmax,mur,front,porch,ope
   'Mieszkańców tej działki nie przypisano jeszcze do wpisów w bazie. Gdy powiązanie powstanie, pojawią się tu osoby i odsyłacze do wpisów.');}
 map.on('click',e=>{
   if(MD&&map.getLayoutProperty('modele','visibility')!=='none'){const i=MD.pick(e.point.x,e.point.y);if(i>=0){if(BR)BR.select(-1);MD.select(i);const w=MD.wpis(i);
+    if(w.opis){show(w.nazwa,[['Stan',w.stan],['Gmina katastralna','Stary Wiśnicz']],w.opis);return;}
     show(w.nazwa+' · działka '+w.dz,[['Działka',w.dz],['Stan','z 1847 r.']],'Mieszkańców tej działki nie przypisano jeszcze do wpisów w bazie. Gdy powiązanie powstanie, pojawią się tu osoby i odsyłacze do wpisów.');return;}}
   if(MD)MD.select(-1);
   if(BR&&map.getLayoutProperty('bryly','visibility')!=='none'){const i=BR.pick(e.point.x,e.point.y);if(i>=0){BR.select(i);kartaBud(i);return;}}
   if(BR)BR.select(-1);
-  const fs=map.getPaintProperty('bud-sw','fill-opacity')>0&&map.getLayoutProperty('bud-sw','visibility')!=='none'?map.queryRenderedFeatures(e.point,{layers:['bud-sw']})[0]:null;
+  const fs=$('b-skan').getAttribute('aria-pressed')!=='true'&&map.getLayoutProperty('bud-sw','visibility')!=='none'?map.queryRenderedFeatures(e.point,{layers:['bud-sw']})[0]:null;
   if(fs){const q=fs.properties;show(q.nazwa||(q.klasa==='budynek_murowany'?'Budynek murowany':'Budynek drewniany'),
-    [['Powierzchnia',fmt(q.p)+' m²'],['Gmina katastralna','Stary Wiśnicz'],['Źródło',q.zrodlo]],
-    q.nazwa==='Zamek'||q.nazwa==='Fortyfikacje bastionowe zamku'?'Zamek Kmitów i Lubomirskich na Górze Zamkowej. Obrys z mapy katastralnej 1847; fortyfikacje bastionowe z lat 1615–1621.':'Obrys z mapy katastralnej Starego Wiśnicza 1847.');return;}
+    [['Powierzchnia',fmt(q.p)+' m²'],['Gmina katastralna','Stary Wiśnicz'],['Stan','z 1847 r.']],
+    q.nazwa==='Zamek'||q.nazwa==='Fortyfikacje bastionowe zamku'?'Zamek Kmitów i Lubomirskich na Górze Zamkowej; fortyfikacje bastionowe z lat 1615–1621.':'Zabudowa folwarku i browaru zamkowego w Starym Wiśniczu.');return;}
   const f=map.queryRenderedFeatures(e.point,{layers:['obs-f']})[0]; if(!f) return;
   show(KL[f.properties.k]?KL[f.properties.k][0]:'Działka',[['Powierzchnia',fmt(f.properties.p)+' m²'],['Morgi (1 mórg = 5755 m²)',(f.properties.p/5754.64).toFixed(2).replace('.',',')]],
   'Numer tej działki nie jest jeszcze opisany. Po uzupełnieniu numeracji pojawią się tu wpisy z ksiąg, które jej dotyczą.');});

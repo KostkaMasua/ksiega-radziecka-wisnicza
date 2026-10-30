@@ -68,6 +68,17 @@ a.btn{text-decoration:none}
 .field{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--ink-2);font-weight:500;min-width:0}
 .field input,.field select{height:36px;border:1px solid var(--rule-2);border-radius:4px;background:var(--field);padding:0 10px;color:var(--ink);font-weight:400;font-size:14px;min-width:0;width:100%}
 .field input::placeholder{color:var(--ink-3)}
+/* pole z hasłami: wpisane hasło (Enter lub przecinek) zamienia się w kafelek; kafelki łączą się w wyszukiwaniu (wszystkie naraz) */
+.tokbox{display:flex;flex-wrap:wrap;align-items:center;gap:4px;min-height:36px;border:1px solid var(--rule-2);border-radius:4px;background:var(--field);padding:3px 4px;cursor:text}
+.tokbox:focus-within{outline:2px solid var(--blue);outline-offset:1px}
+.field .tokbox input{border:0;height:28px;flex:1 1 90px;width:auto;padding:0 6px;background:transparent;outline:none}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.toks{display:contents}
+.tok{display:inline-flex;align-items:center;gap:2px;max-width:100%;height:26px;padding:0 2px 0 8px;border:1px solid var(--rule-2);border-radius:3px;background:var(--sheet-2);color:var(--ink);font-size:13px;font-weight:500;line-height:1}
+.tok span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tok button{display:inline-grid;place-items:center;width:22px;height:22px;border:0;border-radius:2px;background:transparent;color:var(--ink-3);cursor:pointer;padding:0}
+.tok button svg{width:13px;height:13px}
+@media (hover:hover) and (pointer:fine){.tok button:hover{background:var(--rule);color:var(--ink)}}
 .check{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink);min-height:36px;white-space:nowrap}
 .check input{width:16px;height:16px;accent-color:var(--rubric);margin:0}
 .tag{display:inline-block;font-size:12px;font-weight:500;padding:1px 7px;border-radius:3px;background:var(--sheet-2);color:var(--ink);white-space:nowrap}
@@ -264,8 +275,9 @@ a.btn{text-decoration:none}
   <section class="view" id="v-wpisy" aria-label="Wpisy">
     <form class="filters" id="fW" role="search" onsubmit="return false">
       <button type="button" class="ftoggle" data-ftoggle aria-expanded="false" aria-controls="fW"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>Szukaj i filtruj</span><span class="fcount num" id="fWn" hidden></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <label class="field q">Szukaj osoby, tematu lub słowa<input type="search" id="wq" placeholder="np. Noskowicz, kradzież, cech" autocomplete="off"></label>
-      <label class="field w-m">Słowo kluczowe<input type="search" id="wkw" list="kwlist" placeholder="np. dług, ogród" autocomplete="off"></label>
+      <span class="sr-only" id="tokhint">Enter albo przecinek dodaje hasło; kilka haseł wyszukuje się naraz. Backspace w pustym polu usuwa ostatnie hasło.</span>
+      <label class="field q">Szukaj osoby, tematu lub słowa<div class="tokbox" data-tokbox="wq"><span class="toks"></span><input type="search" id="wq" placeholder="np. Noskowicz, kradzież, cech" autocomplete="off" enterkeyhint="enter" aria-describedby="tokhint"></div></label>
+      <label class="field w-m">Słowo kluczowe<div class="tokbox" data-tokbox="wkw"><span class="toks"></span><input type="search" id="wkw" list="kwlist" placeholder="np. dług, ogród" autocomplete="off" enterkeyhint="enter" aria-describedby="tokhint"></div></label>
       <datalist id="kwlist"></datalist>
       <label class="field w-s">Rodzaj wpisu<select id="wtyp"></select></label>
       <label class="field w-xs">Od roku<select id="wod"></select></label>
@@ -290,7 +302,7 @@ a.btn{text-decoration:none}
   <section class="view" id="v-osoby" aria-label="Osoby" hidden>
     <form class="filters" id="fO" role="search" onsubmit="return false">
       <button type="button" class="ftoggle" data-ftoggle aria-expanded="false" aria-controls="fO"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg><span>Szukaj i filtruj</span><span class="fcount num" id="fOn" hidden></span><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-      <label class="field q">Szukaj osoby<input type="search" id="oq" placeholder="Imię lub nazwisko w pisowni źródła" autocomplete="off"></label>
+      <label class="field q">Szukaj osoby<div class="tokbox" data-tokbox="oq"><span class="toks"></span><input type="search" id="oq" placeholder="Imię lub nazwisko w pisowni źródła" autocomplete="off" enterkeyhint="enter" aria-describedby="tokhint"></div></label>
       <label class="field w-s">Stan<select id="ostat"></select></label>
       <label class="field w-m">Zawód lub urząd<select id="ozaw"></select></label>
       <button type="button" class="btn mtoggle" id="omore" aria-expanded="false">Więcej filtrów</button>
@@ -366,6 +378,42 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;
 const normCh = c => c.normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[łŁ]/,'l').toLowerCase().charAt(0) || c;
 const norm = s => Array.from(String(s ?? ''), normCh).join('');
 const plural = (n, a, b, c) => n + ' ' + (n===1 ? a : (n%10>=2 && n%10<=4 && (n%100<12||n%100>14)) ? b : c);
+// ================= pola z hasłami (kafelki) =================
+const TOK = { wq: [], wkw: [], oq: [] };
+const TOK_UPD = { wq: () => updateW(), wkw: () => updateW(), oq: () => updateO() };
+function tokVals(id){ const v = $(id).value.trim(); return v ? [...TOK[id], v] : [...TOK[id]]; }
+function tokQ(id){ return tokVals(id).join(' '); }
+function tokChips(id, pre, fmt = x => x){
+  const out = TOK[id].map((t, i) => [id + ':' + i, pre + fmt(t)]);
+  const v = $(id).value.trim(); if (v) out.push([id + ':txt', pre + fmt(v)]);
+  return out;
+}
+function tokRender(id){
+  const box = document.querySelector(`[data-tokbox="${id}"] .toks`);
+  box.innerHTML = TOK[id].map((t, i) => `<span class="tok"><span>${esc(t)}</span><button type="button" data-untok="${id}" data-i="${i}" aria-label="Usuń hasło ${esc(t)}">${ICON_X}</button></span>`).join('');
+  $(id).placeholder = TOK[id].length ? 'Dodaj hasło…' : $(id).dataset.ph;
+}
+function clearField(id){ if (TOK[id]) { TOK[id] = []; tokRender(id); } $(id).value = ''; }
+function tokCommit(id){
+  const parts = $(id).value.split(',').map(x => x.trim()).filter(Boolean); if (!parts.length) return false;
+  for (const p of parts) if (!TOK[id].some(t => norm(t) === norm(p))) TOK[id].push(p);
+  $(id).value = ''; tokRender(id); return true;
+}
+function tokInit(){
+  for (const id of Object.keys(TOK)){
+    const inp = $(id); inp.dataset.ph = inp.placeholder;
+    inp.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ',') && !e.isComposing) { if (inp.value.trim()) { e.preventDefault(); tokCommit(id); TOK_UPD[id](); } else if (e.key === ',') e.preventDefault(); return; }
+      if (e.key === 'Backspace' && !inp.value && TOK[id].length && inp.selectionStart === 0) { e.preventDefault(); TOK[id].pop(); tokRender(id); TOK_UPD[id](); }
+    });
+    // wybór z listy podpowiedzi (słowa kluczowe) od razu tworzy kafelek
+    inp.addEventListener('input', e => { if (e.inputType === 'insertReplacementText' || (inp.list && !e.inputType && inp.value)) { tokCommit(id); TOK_UPD[id](); }
+      else if (inp.value.includes(',')) { tokCommit(id); TOK_UPD[id](); } });
+    inp.closest('.tokbox').addEventListener('click', e => { if (!e.target.closest('button')) inp.focus(); });
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-untok]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation(); const id = b.dataset.untok; TOK[id].splice(+b.dataset.i, 1); tokRender(id); TOK_UPD[id](); $(id).focus(); }, true);
+}
 const ICON_X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg>';
 const ICON_LINK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>';
 const ICON_QUOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
@@ -430,11 +478,11 @@ const narrow = () => matchMedia('(max-width:860px)').matches;
 // ================= Wpisy =================
 const W = { sel:null, sort:'asc', fresh:false, f:{}, r:[], fromPerson:null };
 function readW(){
-  W.f = { q:$('wq').value, typ:$('wtyp').value, od:$('wod').value, do:$('wdo').value, temat:$('wtemat').value,
-          rola:$('wrola').value, stat:$('wstat').value, skan:$('wskan').value.trim(), multi:$('wmulti').checked, kw:$('wkw').value.trim() };
+  W.f = { q:tokQ('wq'), typ:$('wtyp').value, od:$('wod').value, do:$('wdo').value, temat:$('wtemat').value,
+          rola:$('wrola').value, stat:$('wstat').value, skan:$('wskan').value.trim(), multi:$('wmulti').checked, kw:tokVals('wkw') };
 }
 function filterW(){
-  const f = W.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean), kq = normKw(f.kw), kExact = D.kwCount.has(kq);
+  const f = W.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean), kws = f.kw.map(k => { const q = normKw(k); return {q, ex: D.kwCount.has(q)}; }).filter(k => k.q);
   const r = D.wpisy.filter(w => {
     if (f.typ && w.typ !== f.typ) return false;
     if (f.temat && w.temat !== f.temat) return false;
@@ -445,7 +493,7 @@ function filterW(){
     if (f.rola && !w.osoby.some(o => o.rola === f.rola)) return false;
     if (f.stat && !w.osoby.some(o => o.status === f.stat)) return false;
     if (f.skan && String(w.skan) !== f.skan) return false;
-    if (kq && !(kExact ? w.kw.includes(kq) : w.kw.some(k => norm(k).includes(norm(kq))))) return false;
+    if (kws.length && !kws.every(({q, ex}) => ex ? w.kw.includes(q) : w.kw.some(k => norm(k).includes(norm(q))))) return false;
     if (toks.length && !toks.every(t => w._hay.includes(t))) return false;
     return true;
   });
@@ -460,11 +508,11 @@ function setPanel(form, open){
 }
 function activeW(){
   const f = W.f, chips = [];
-  if (f.q.trim()) chips.push(['wq','Szukaj: '+f.q.trim()]);
+  chips.push(...tokChips('wq', 'Szukaj: '));
   if (f.typ) chips.push(['wtyp','Rodzaj: '+f.typ]); if (f.temat) chips.push(['wtemat','Temat: '+f.temat]);
   if (f.od) chips.push(['wod','Od '+f.od]); if (f.do) chips.push(['wdo','Do '+f.do]);
   if (f.rola) chips.push(['wrola','Rola: '+f.rola]); if (f.stat) chips.push(['wstat','Stan: '+f.stat]);
-  if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); if (f.kw) chips.push(['wkw','Słowo: '+normKw(f.kw)]);
+  if (f.skan) chips.push(['wskan','Skan '+f.skan]); if (f.multi) chips.push(['wmulti','3+ osoby']); chips.push(...tokChips('wkw', 'Słowo: ', normKw));
   fcount('fW', chips.length);
   const el = $('wact'); el.hidden = !chips.length;
   el.innerHTML = chips.length ? `<span>Filtry:</span>${chips.map(([k,l]) => `<button type="button" data-clear="${k}" aria-label="Usuń filtr ${esc(l)}">${esc(l)}${ICON_X}</button>`).join('')}<button type="button" data-clear="all" style="border-style:dashed">Wyczyść wszystko</button>` : '';
@@ -528,7 +576,7 @@ function updateW(){ readW(); filterW(); activeW(); renderListW(); detailW(); }
 
 // ================= Osoby =================
 const O = { sel:null, sort:'n', fresh:false, f:{}, r:[], fromEntry:null };
-function readO(){ O.f = { q:$('oq').value, stat:$('ostat').value, zaw:$('ozaw').value, min:+$('omin').value || 0, fam:$('ofam').checked }; }
+function readO(){ O.f = { q:tokQ('oq'), stat:$('ostat').value, zaw:$('ozaw').value, min:+$('omin').value || 0, fam:$('ofam').checked }; }
 function filterO(){
   const f = O.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean);
   O.r = D.osoby_indeks.filter(o => {
@@ -542,7 +590,7 @@ function filterO(){
 }
 function activeO(){
   const f = O.f, chips = [];
-  if (f.q.trim()) chips.push(['oq','Szukaj: '+f.q.trim()]);
+  chips.push(...tokChips('oq', 'Szukaj: '));
   if (f.stat) chips.push(['ostat','Stan: '+f.stat]); if (f.zaw) chips.push(['ozaw','Zawód: '+f.zaw]);
   if (f.min) chips.push(['omin','Min. '+f.min+' wpisów']); if (f.fam) chips.push(['ofam','Z rodziną']);
   fcount('fO', chips.length);
@@ -634,10 +682,10 @@ function openEntry(id, fromHash){
 }
 function openPerson(name, fromHash){
   show('osoby');
-  if (!O.r.some(o => o.osoba === name)) { for (const k of ['oq','ostat','ozaw','omin']) $(k).value = ''; $('ofam').checked = false; updateO(); }
+  if (!O.r.some(o => o.osoba === name)) { for (const k of ['oq','ostat','ozaw','omin']) clearField(k); $('ofam').checked = false; updateO(); }
   selectO(name, {scroll:true, open:true, noHash:fromHash});
 }
-function clearW(){ for (const k of ['wq','wkw','wtyp','wod','wdo','wtemat','wrola','wstat','wskan']) $(k).value = ''; $('wmulti').checked = false; updateW(); }
+function clearW(){ for (const k of ['wq','wkw','wtyp','wod','wdo','wtemat','wrola','wstat','wskan']) clearField(k); $('wmulti').checked = false; updateW(); }
 window.addEventListener('hashchange', route);
 document.querySelectorAll('[data-tab]').forEach(a => a.addEventListener('click', e => {
   // ponowne kliknięcie aktywnej zakładki na telefonie wraca do listy
@@ -657,11 +705,12 @@ document.addEventListener('click', e => {
   if (t.closest('[data-backw]')) { const id = O.fromEntry.id; O.fromEntry = null; W.fromPerson = null; openEntry(id); return; }
   if (t.closest('[data-backp]')) { const n = W.fromPerson.name; W.fromPerson = null; openPerson(n); history.replaceState(null,'','#o-'+D.osIdx[n].slug); return; }
   const p = t.closest('[data-os]'); if (p) { O.fromEntry = p.closest('#dW') ? {name:p.dataset.os, id:W.sel} : null; openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
-  const k = t.closest('[data-kw]'); if (k) { $('wkw').value = k.dataset.kw; updateW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw + '”'); return; }
+  const k = t.closest('[data-kw]'); if (k) { clearField('wkw'); TOK.wkw.push(k.dataset.kw); tokRender('wkw'); updateW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw + '”'); return; }
   const c = t.closest('[data-clear]'); if (c) {
     const key = c.dataset.clear, inW = !!c.closest('#wact');
-    if (key === 'all') { if (inW) clearW(); else { for (const x of ['oq','ostat','ozaw','omin']) $(x).value=''; $('ofam').checked=false; updateO(); } return; }
-    if ($(key).type === 'checkbox') $(key).checked = false; else $(key).value = '';
+    if (key === 'all') { if (inW) clearW(); else { for (const x of ['oq','ostat','ozaw','omin']) clearField(x); $('ofam').checked=false; updateO(); } return; }
+    if (key.includes(':')) { const [id, i] = key.split(':'); if (i === 'txt') $(id).value = ''; else { TOK[id].splice(+i, 1); tokRender(id); } }
+    else if ($(key).type === 'checkbox') $(key).checked = false; else clearField(key);
     inW ? updateW() : updateO(); return; }
   if (t.closest('#sortW')) { W.sort = W.sort === 'asc' ? 'desc' : 'asc'; filterW(); renderListW(); return; }
   if (t.closest('#sortO')) { O.sort = O.sort === 'n' ? 'a' : 'n'; filterO(); renderListO(); return; }
@@ -719,7 +768,7 @@ fetch('data/data.json').then(r => { if (!r.ok) throw new Error(r.status); return
   $('wstat').innerHTML = opts(stany, 'Dowolny');
   $('ostat').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => (o.statusy||'').split(/,\s*/)).filter(Boolean))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
   $('ozaw').innerHTML = opts([...new Set(D.osoby_indeks.flatMap(o => o.zawody||[]))].sort((a,b) => a.localeCompare(b,'pl')), 'Dowolny');
-  bindFilters($('fW'), updateW); bindFilters($('fO'), updateO);
+  tokInit(); bindFilters($('fW'), updateW); bindFilters($('fO'), updateO);
   for (const f of ['fW','fO']) { let v = null; try { v = localStorage.getItem('panel-' + f); } catch(_){} setPanel(f, v === '1'); }
   updateW(); updateO(); route();
 }).catch(err => {

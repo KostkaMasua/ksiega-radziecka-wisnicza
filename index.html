@@ -527,7 +527,7 @@ function selectW(id, opts = {}){
 function updateW(){ readW(); filterW(); activeW(); renderListW(); detailW(); }
 
 // ================= Osoby =================
-const O = { sel:null, sort:'n', fresh:false, f:{}, r:[] };
+const O = { sel:null, sort:'n', fresh:false, f:{}, r:[], fromEntry:null };
 function readO(){ O.f = { q:$('oq').value, stat:$('ostat').value, zaw:$('ozaw').value, min:+$('omin').value || 0, fam:$('ofam').checked }; }
 function filterO(){
   const f = O.f, toks = norm(f.q).trim().split(/\s+/).filter(Boolean);
@@ -572,7 +572,9 @@ function detailO(){
     return `<li><span>${esc(n.t)}</span>${(n.w||[]).length ? `<span class="srcs">${n.w.map(sprawa).join('')}</span>` : ''}</li>`; }).join('')}</ul>` : '';
   const pow = (o.powiazania||[]).filter(p => p.osoba && p.osoba !== '?').sort((a,b) => b.ile - a.ile);
   el.innerHTML = `<div class="detail-in${O.fresh?' fresh':''}">
-    <button type="button" class="btn back" data-back>${ICON_BACK}Lista osób</button>
+    ${O.fromEntry && O.fromEntry.name === O.sel && D.byId[O.fromEntry.id]
+      ? `<div class="backrow"><button type="button" class="btn backp" data-backw title="Wróć do wpisu">${ICON_BACK}Wróć do wpisu: ${(d => d.d + ' ' + d.y)(dataRom(D.byId[O.fromEntry.id].data))}</button></div>`
+      : `<button type="button" class="btn back" data-back>${ICON_BACK}Lista osób</button>`}
     <div class="head">
       <div class="margin"><span class="dt">${lata.length ? (lata[0]===lata[1] ? lata[0] : lata[0]+'–'+lata[1]) : ''}</span><small>${plural(o.liczba_n,'wpis','wpisy','wpisów')}</small></div>
       <div><h2>${esc(o.osoba)}</h2>
@@ -595,6 +597,7 @@ function detailO(){
   O.fresh = false;
 }
 function selectO(name, opts = {}){
+  if (O.fromEntry && O.fromEntry.name !== name) O.fromEntry = null;   // przycisk powrotu tylko na karcie otwartej z wpisu
   O.sel = name; O.fresh = !opts.keyboard;
   document.querySelectorAll('#lO .item').forEach(b => b.setAttribute('aria-current', String(b.dataset.o === name)));
   detailO();
@@ -609,6 +612,7 @@ function updateO(){ readO(); filterO(); activeO(); renderListO(); detailO(); }
 let tab = 'wpisy', mapaLoaded = false;
 function show(t){
   if (t !== 'wpisy') W.fromPerson = null;
+  if (t !== 'osoby') O.fromEntry = null;
   tab = t;
   for (const v of ['wpisy','osoby','mapa']) $('v-'+v).hidden = v !== t;
   document.querySelectorAll('[data-tab]').forEach(a => { if (a.dataset.tab === t) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
@@ -650,8 +654,9 @@ document.addEventListener('click', e => {
   const w = t.closest('[data-w]'); if (w) { selectW(w.dataset.w, {open:true}); return; }
   const o = t.closest('[data-o]'); if (o) { selectO(o.dataset.o, {open:true}); return; }
   const g = t.closest('[data-goto]'); if (g) { W.fromPerson = g.closest('#dO') ? {name:O.sel, id:g.dataset.goto} : null; openEntry(g.dataset.goto); return; }
+  if (t.closest('[data-backw]')) { const id = O.fromEntry.id; O.fromEntry = null; W.fromPerson = null; openEntry(id); return; }
   if (t.closest('[data-backp]')) { const n = W.fromPerson.name; W.fromPerson = null; openPerson(n); history.replaceState(null,'','#o-'+D.osIdx[n].slug); return; }
-  const p = t.closest('[data-os]'); if (p) { openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
+  const p = t.closest('[data-os]'); if (p) { O.fromEntry = p.closest('#dW') ? {name:p.dataset.os, id:W.sel} : null; openPerson(p.dataset.os); history.replaceState(null,'','#o-'+D.osIdx[p.dataset.os].slug); return; }
   const k = t.closest('[data-kw]'); if (k) { $('wkw').value = k.dataset.kw; updateW(); $('sW').dataset.pane = 'list'; toast('Pokazuję wpisy ze słowem „' + k.dataset.kw + '”'); return; }
   const c = t.closest('[data-clear]'); if (c) {
     const key = c.dataset.clear, inW = !!c.closest('#wact');
